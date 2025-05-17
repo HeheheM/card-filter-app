@@ -25,7 +25,8 @@ const CardFilterApp = () => {
     trimmed: false,
     frame: false,
     hasDyeName: false,
-    tag: ''
+    tag: '',
+    noneTag: false
   });
   
   // Calculate the total number of pages
@@ -221,6 +222,13 @@ const CardFilterApp = () => {
       );
     }
     
+    // Filter for cards with no tag
+    if (filters.noneTag) {
+      results = results.filter(card => 
+        !card.tag || card.tag.trim() === ''
+      );
+    }
+    
     setFilteredData(results);
     setDisplayData(results);
     // Reset pagination when filters change
@@ -270,7 +278,8 @@ const CardFilterApp = () => {
       trimmed: false,
       frame: false,
       hasDyeName: false,
-      tag: ''
+      tag: '',
+      noneTag: false
     });
     
     setFilteredData(data);
@@ -489,14 +498,29 @@ const CardFilterApp = () => {
         
         <div className="form-group">
           <label className="form-label">Tag:</label>
-          <input
-            type="text"
-            name="tag"
-            value={filters.tag}
-            onChange={handleFilterChange}
-            className="form-input"
-            placeholder="Enter tag..."
-          />
+          <div className="flex gap-2">
+            <input
+              type="text"
+              name="tag"
+              value={filters.tag}
+              onChange={handleFilterChange}
+              className="form-input"
+              placeholder="Enter tag..."
+              disabled={filters.noneTag}
+            />
+            <button
+              onClick={() => setFilters({...filters, noneTag: !filters.noneTag, tag: filters.noneTag ? filters.tag : ''})}
+              className={`btn ${filters.noneTag ? 'btn-primary' : 'btn-secondary'}`}
+              title="Show only cards with no tag"
+            >
+              None Tag
+            </button>
+          </div>
+          {filters.noneTag && (
+            <p className="text-info" style={{fontSize: "0.75rem", marginTop: "0.25rem"}}>
+              Showing only cards with no tag. Tag search is disabled.
+            </p>
+          )}
         </div>
         
         <div className="form-group">

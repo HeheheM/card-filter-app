@@ -1,4 +1,6 @@
-:root {
+.text-info {
+  color: #3b82f6;
+}:root {
   /* Light theme variables */
   --background-color: #f5f5f5;
   --card-bg: white;
