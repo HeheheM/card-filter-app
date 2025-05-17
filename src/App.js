@@ -7,6 +7,7 @@ const CardFilterApp = () => {
   const [data, setData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [copyBatch, setCopyBatch] = useState(0);
   const [filters, setFilters] = useState({
     series: '',
     numberFrom: '',
@@ -101,41 +102,7 @@ const CardFilterApp = () => {
     }
   }, [file]);
   
-  // Handle filter changes
-  const handleFilterChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    
-    if (type === 'checkbox') {
-      setFilters({
-        ...filters,
-        [name]: checked
-      });
-    } else {
-      setFilters({
-        ...filters,
-        [name]: value
-      });
-    }
-  };
-  
-  // Handle edition selection
-  const handleEditionChange = (edition) => {
-    const newEditions = [...filters.editions];
-    
-    if (newEditions.includes(edition)) {
-      const index = newEditions.indexOf(edition);
-      newEditions.splice(index, 1);
-    } else {
-      newEditions.push(edition);
-    }
-    
-    setFilters({
-      ...filters,
-      editions: newEditions
-    });
-  };
-  
-  // Apply filters
+  // Apply filters function
   const applyFilters = () => {
     let results = [...data];
     
@@ -207,6 +174,49 @@ const CardFilterApp = () => {
     }
     
     setFilteredData(results);
+    // Reset copy batch when filters change
+    setCopyBatch(0);
+  };
+  
+  // Handle filter changes - now applying filters automatically
+  const handleFilterChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    
+    const newFilters = {
+      ...filters,
+      [name]: type === 'checkbox' ? checked : value
+    };
+    
+    setFilters(newFilters);
+    
+    // Apply filters immediately after state update
+    setTimeout(() => {
+      applyFilters();
+    }, 0);
+  };
+  
+  // Handle edition selection - now applying filters automatically
+  const handleEditionChange = (edition) => {
+    const newEditions = [...filters.editions];
+    
+    if (newEditions.includes(edition)) {
+      const index = newEditions.indexOf(edition);
+      newEditions.splice(index, 1);
+    } else {
+      newEditions.push(edition);
+    }
+    
+    const newFilters = {
+      ...filters,
+      editions: newEditions
+    };
+    
+    setFilters(newFilters);
+    
+    // Apply filters immediately after state update
+    setTimeout(() => {
+      applyFilters();
+    }, 0);
   };
   
   // Reset filters
@@ -226,13 +236,29 @@ const CardFilterApp = () => {
     });
     
     setFilteredData(data);
+    setCopyBatch(0);
   };
   
-  // Copy card codes to clipboard
+  // Copy card codes to clipboard - updated to handle batches
   const copyCardCodes = () => {
-    const codes = filteredData.slice(0, 50).map(card => card.code).join(', ');
+    const batchSize = 50;
+    const totalBatches = Math.ceil(filteredData.length / batchSize);
+    
+    // If we've copied all batches, reset to beginning
+    if (copyBatch >= totalBatches) {
+      setCopyBatch(0);
+      return;
+    }
+    
+    const startIndex = copyBatch * batchSize;
+    const endIndex = Math.min(startIndex + batchSize, filteredData.length);
+    const codes = filteredData.slice(startIndex, endIndex).map(card => card.code).join(', ');
+    
     navigator.clipboard.writeText(codes);
-    alert('Card codes copied to clipboard!');
+    alert(`Skopiowano kody ${startIndex+1}-${endIndex} z ${filteredData.length}`);
+    
+    // Move to next batch
+    setCopyBatch(copyBatch + 1);
   };
   
   // Download card codes as text file
@@ -262,6 +288,26 @@ const CardFilterApp = () => {
     
     const editions = [...new Set(data.map(card => card.edition))];
     return editions.sort((a, b) => parseInt(a) - parseInt(b));
+  };
+  
+  // Get copy button text
+  const getCopyButtonText = () => {
+    const batchSize = 50;
+    const totalBatches = Math.ceil(filteredData.length / batchSize);
+    
+    if (filteredData.length === 0) {
+      return "Copy Codes (max 50)";
+    }
+    
+    // If we've copied all batches, show that we're starting over
+    if (copyBatch >= totalBatches) {
+      return "Copy Codes (Start Over)";
+    }
+    
+    const startIndex = copyBatch * batchSize;
+    const endIndex = Math.min(startIndex + batchSize, filteredData.length);
+    
+    return `Copy Codes (${startIndex}/${filteredData.length})`;
   };
   
   return (
@@ -435,12 +481,6 @@ const CardFilterApp = () => {
         
         <div className="flex gap-2">
           <button
-            onClick={applyFilters}
-            className="btn btn-primary"
-          >
-            Apply Filters
-          </button>
-          <button
             onClick={resetFilters}
             className="btn btn-secondary"
           >
@@ -463,7 +503,7 @@ const CardFilterApp = () => {
                   : 'btn-success'
               }`}
             >
-              Copy Codes (max 50)
+              {getCopyButtonText()}
             </button>
             <button
               onClick={downloadCardCodes}
