@@ -564,308 +564,308 @@ const CardFilterApp = () => {
         </div>
       </div>
       
-      {/* Filters */}
+      {/* Filters card */}
       <div className="card">
         <h2>Filters</h2>
         
-        {/* Include filters */}
-        <h3 className="filter-section-title">Include Filters</h3>
-        <div className="form-group">
-          <label className="form-label">Series:</label>
-          <input
-            type="text"
-            name="series"
-            value={filters.series}
-            onChange={handleFilterChange}
-            className="form-input"
-            placeholder="Enter series name..."
-          />
-        </div>
-        
-        <div className="form-group">
-          <label className="form-label">Number:</label>
-          <div className="flex gap-2">
+        {/* Include filters section */}
+        <div className="filter-section">
+          <h3 className="filter-section-title">Include Filters</h3>
+          
+          <div className="form-group">
+            <label className="form-label">Series:</label>
             <input
-              type="number"
-              name="numberFrom"
-              value={filters.numberFrom}
+              type="text"
+              name="series"
+              value={filters.series}
               onChange={handleFilterChange}
               className="form-input"
-              placeholder="From"
-            />
-            <input
-              type="number"
-              name="numberTo"
-              value={filters.numberTo}
-              onChange={handleFilterChange}
-              className="form-input"
-              placeholder="To"
+              placeholder="Enter series name..."
             />
           </div>
-        </div>
-        
-        <div className="flex gap-2" style={{marginTop: "1.5rem"}}>
-          <button
-            onClick={applyFilters}
-            className="btn btn-primary"
-          >
-            Apply Filters
-          </button>
-          <button
-            onClick={resetFilters}
-            className="btn btn-secondary"
-          >
-            Reset Filters
-          </button>
+          
+          <div className="form-group">
+            <label className="form-label">Number:</label>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                name="numberFrom"
+                value={filters.numberFrom}
+                onChange={handleFilterChange}
+                className="form-input"
+                placeholder="From"
+              />
+              <input
+                type="number"
+                name="numberTo"
+                value={filters.numberTo}
+                onChange={handleFilterChange}
+                className="form-input"
+                placeholder="To"
+              />
+            </div>
+          </div>
+          
+          <div className="form-group">
+            <label className="form-label">Wishlists:</label>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                name="wishlistsFrom"
+                value={filters.wishlistsFrom}
+                onChange={handleFilterChange}
+                className="form-input"
+                placeholder="From"
+              />
+              <input
+                type="number"
+                name="wishlistsTo"
+                value={filters.wishlistsTo}
+                onChange={handleFilterChange}
+                className="form-input"
+                placeholder="To"
+              />
+            </div>
+          </div>
+          
+          <div className="form-group">
+            <label className="form-label">Tag:</label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                name="tag"
+                value={filters.tag}
+                onChange={handleFilterChange}
+                className="form-input"
+                placeholder="Enter tag..."
+                disabled={filters.noneTag}
+              />
+              <button
+                onClick={() => setFilters({...filters, noneTag: !filters.noneTag, tag: filters.noneTag ? filters.tag : ''})}
+                className={`btn ${filters.noneTag ? 'btn-primary' : 'btn-secondary'}`}
+                title="Show only cards with no tag"
+              >
+                None Tag
+              </button>
+            </div>
+            {filters.noneTag && (
+              <p className="text-info" style={{fontSize: "0.75rem", marginTop: "0.25rem"}}>
+                Showing only cards with no tag. Tag search is disabled.
+              </p>
+            )}
+          </div>
+          
+          <div className="form-group">
+            <label className="form-label">Editions:</label>
+            <div className="flex flex-wrap gap-2">
+              {getUniqueEditions().map((edition) => (
+                <button
+                  key={edition}
+                  onClick={() => handleEditionChange(edition)}
+                  className={`chip ${
+                    filters.editions.includes(edition)
+                      ? 'chip-blue'
+                      : 'chip-gray'
+                  }`}
+                >
+                  {edition}
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          <div className="form-group">
+            <div className="flex flex-wrap gap-2">
+              <div className="checkbox-container">
+                <input
+                  type="checkbox"
+                  id="morphed"
+                  name="morphed"
+                  checked={filters.morphed}
+                  onChange={handleFilterChange}
+                  className="checkbox"
+                />
+                <label htmlFor="morphed" className="checkbox-label">
+                  Morphed
+                </label>
+              </div>
+              
+              <div className="checkbox-container">
+                <input
+                  type="checkbox"
+                  id="trimmed"
+                  name="trimmed"
+                  checked={filters.trimmed}
+                  onChange={handleFilterChange}
+                  className="checkbox"
+                />
+                <label htmlFor="trimmed" className="checkbox-label">
+                  Trimmed
+                </label>
+              </div>
+              
+              <div className="checkbox-container">
+                <input
+                  type="checkbox"
+                  id="frame"
+                  name="frame"
+                  checked={filters.frame}
+                  onChange={handleFilterChange}
+                  className="checkbox"
+                />
+                <label htmlFor="frame" className="checkbox-label">
+                  With Frame
+                </label>
+              </div>
+              
+              <div className="checkbox-container">
+                <input
+                  type="checkbox"
+                  id="hasDyeName"
+                  name="hasDyeName"
+                  checked={filters.hasDyeName}
+                  onChange={handleFilterChange}
+                  className="checkbox"
+                />
+                <label htmlFor="hasDyeName" className="checkbox-label">
+                  With dye.name
+                </label>
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex gap-2" style={{marginTop: "1rem"}}>
+            <button
+              onClick={applyFilters}
+              className="btn btn-primary"
+            >
+              Apply Filters
+            </button>
+            <button
+              onClick={resetFilters}
+              className="btn btn-secondary"
+            >
+              Reset Filters
+            </button>
+          </div>
         </div>
         
         <div className="filter-section-divider"></div>
         
-        {/* Blacklist filters */}
-        <h3 className="filter-section-title">Exclude Filters (Blacklist)</h3>
-        
-        <div className="form-group">
-          <label className="form-label">Exclude Series:</label>
-          <input
-            type="text"
-            name="blacklistSeries"
-            value={filters.blacklistSeries}
-            onChange={handleFilterChange}
-            className="form-input"
-            placeholder="Enter series to exclude (comma-separated)"
-          />
-          {filters.blacklistSeries && (
-            <p className="text-info" style={{fontSize: "0.75rem", marginTop: "0.25rem"}}>
-              Excluding series containing: {filters.blacklistSeries}
-            </p>
-          )}
-        </div>
-        
-        <div className="form-group">
-          <label className="form-label">Exclude Characters:</label>
-          <input
-            type="text"
-            name="blacklistCharacter"
-            value={filters.blacklistCharacter}
-            onChange={handleFilterChange}
-            className="form-input"
-            placeholder="Enter characters to exclude (comma-separated)"
-          />
-        </div>
-        
-        <div className="form-group">
-          <label className="form-label">Exclude Tags:</label>
-          <input
-            type="text"
-            name="blacklistTag"
-            value={filters.blacklistTag}
-            onChange={handleFilterChange}
-            className="form-input"
-            placeholder="Enter tags to exclude (comma-separated)"
-          />
-        </div>
-        
-        <div className="form-group">
-          <div className="flex flex-wrap gap-2">
-            <div className="checkbox-container">
-              <input
-                type="checkbox"
-                id="excludeFrame"
-                name="excludeFrame"
-                checked={filters.excludeFrame}
-                onChange={handleFilterChange}
-                className="checkbox"
-              />
-              <label htmlFor="excludeFrame" className="checkbox-label">
-                Exclude Cards with Frame
-              </label>
-            </div>
-            
-            <div className="checkbox-container">
-              <input
-                type="checkbox"
-                id="excludeMorphed"
-                name="excludeMorphed"
-                checked={filters.excludeMorphed}
-                onChange={handleFilterChange}
-                className="checkbox"
-              />
-              <label htmlFor="excludeMorphed" className="checkbox-label">
-                Exclude Morphed Cards
-              </label>
-            </div>
-            
-            <div className="checkbox-container">
-              <input
-                type="checkbox"
-                id="excludeTrimmed"
-                name="excludeTrimmed"
-                checked={filters.excludeTrimmed}
-                onChange={handleFilterChange}
-                className="checkbox"
-              />
-              <label htmlFor="excludeTrimmed" className="checkbox-label">
-                Exclude Trimmed Cards
-              </label>
-            </div>
-            
-            <div className="checkbox-container">
-              <input
-                type="checkbox"
-                id="excludeDyeName"
-                name="excludeDyeName"
-                checked={filters.excludeDyeName}
-                onChange={handleFilterChange}
-                className="checkbox"
-              />
-              <label htmlFor="excludeDyeName" className="checkbox-label">
-                Exclude Cards with dye.name
-              </label>
-            </div>
-          </div>
-        </div>
-        
-        <div className="form-group">
-          <label className="form-label">Wishlists:</label>
-          <div className="flex gap-2">
-            <input
-              type="number"
-              name="wishlistsFrom"
-              value={filters.wishlistsFrom}
-              onChange={handleFilterChange}
-              className="form-input"
-              placeholder="From"
-            />
-            <input
-              type="number"
-              name="wishlistsTo"
-              value={filters.wishlistsTo}
-              onChange={handleFilterChange}
-              className="form-input"
-              placeholder="To"
-            />
-          </div>
-        </div>
-        
-        <div className="form-group">
-          <label className="form-label">Tag:</label>
-          <div className="flex gap-2">
+        {/* Exclude filters section */}
+        <div className="filter-section">
+          <h3 className="filter-section-title">Exclude Filters (Blacklist)</h3>
+          
+          <div className="form-group">
+            <label className="form-label">Exclude Series:</label>
             <input
               type="text"
-              name="tag"
-              value={filters.tag}
+              name="blacklistSeries"
+              value={filters.blacklistSeries}
               onChange={handleFilterChange}
               className="form-input"
-              placeholder="Enter tag..."
-              disabled={filters.noneTag}
+              placeholder="Enter series to exclude (comma-separated)"
             />
+          </div>
+          
+          <div className="form-group">
+            <label className="form-label">Exclude Characters:</label>
+            <input
+              type="text"
+              name="blacklistCharacter"
+              value={filters.blacklistCharacter}
+              onChange={handleFilterChange}
+              className="form-input"
+              placeholder="Enter characters to exclude (comma-separated)"
+            />
+          </div>
+          
+          <div className="form-group">
+            <label className="form-label">Exclude Tags:</label>
+            <input
+              type="text"
+              name="blacklistTag"
+              value={filters.blacklistTag}
+              onChange={handleFilterChange}
+              className="form-input"
+              placeholder="Enter tags to exclude (comma-separated)"
+            />
+          </div>
+          
+          <div className="form-group">
+            <div className="flex flex-wrap gap-2">
+              <div className="checkbox-container">
+                <input
+                  type="checkbox"
+                  id="excludeFrame"
+                  name="excludeFrame"
+                  checked={filters.excludeFrame}
+                  onChange={handleFilterChange}
+                  className="checkbox"
+                />
+                <label htmlFor="excludeFrame" className="checkbox-label">
+                  Exclude Cards with Frame
+                </label>
+              </div>
+              
+              <div className="checkbox-container">
+                <input
+                  type="checkbox"
+                  id="excludeMorphed"
+                  name="excludeMorphed"
+                  checked={filters.excludeMorphed}
+                  onChange={handleFilterChange}
+                  className="checkbox"
+                />
+                <label htmlFor="excludeMorphed" className="checkbox-label">
+                  Exclude Morphed Cards
+                </label>
+              </div>
+              
+              <div className="checkbox-container">
+                <input
+                  type="checkbox"
+                  id="excludeTrimmed"
+                  name="excludeTrimmed"
+                  checked={filters.excludeTrimmed}
+                  onChange={handleFilterChange}
+                  className="checkbox"
+                />
+                <label htmlFor="excludeTrimmed" className="checkbox-label">
+                  Exclude Trimmed Cards
+                </label>
+              </div>
+              
+              <div className="checkbox-container">
+                <input
+                  type="checkbox"
+                  id="excludeDyeName"
+                  name="excludeDyeName"
+                  checked={filters.excludeDyeName}
+                  onChange={handleFilterChange}
+                  className="checkbox"
+                />
+                <label htmlFor="excludeDyeName" className="checkbox-label">
+                  Exclude Cards with dye.name
+                </label>
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex gap-2" style={{marginTop: "1rem"}}>
             <button
-              onClick={() => setFilters({...filters, noneTag: !filters.noneTag, tag: filters.noneTag ? filters.tag : ''})}
-              className={`btn ${filters.noneTag ? 'btn-primary' : 'btn-secondary'}`}
-              title="Show only cards with no tag"
+              onClick={applyFilters}
+              className="btn btn-primary"
             >
-              None Tag
+              Apply Filters
+            </button>
+            <button
+              onClick={resetFilters}
+              className="btn btn-secondary"
+            >
+              Reset Filters
             </button>
           </div>
-          {filters.noneTag && (
-            <p className="text-info" style={{fontSize: "0.75rem", marginTop: "0.25rem"}}>
-              Showing only cards with no tag. Tag search is disabled.
-            </p>
-          )}
-        </div>
-        
-        <div className="form-group">
-          <label className="form-label">Editions:</label>
-          <div className="flex flex-wrap gap-2">
-            {getUniqueEditions().map((edition) => (
-              <button
-                key={edition}
-                onClick={() => handleEditionChange(edition)}
-                className={`chip ${
-                  filters.editions.includes(edition)
-                    ? 'chip-blue'
-                    : 'chip-gray'
-                }`}
-              >
-                {edition}
-              </button>
-            ))}
-          </div>
-        </div>
-        
-        <div className="form-group">
-          <div className="flex flex-wrap gap-2">
-            <div className="checkbox-container">
-              <input
-                type="checkbox"
-                id="morphed"
-                name="morphed"
-                checked={filters.morphed}
-                onChange={handleFilterChange}
-                className="checkbox"
-              />
-              <label htmlFor="morphed" className="checkbox-label">
-                Morphed
-              </label>
-            </div>
-            
-            <div className="checkbox-container">
-              <input
-                type="checkbox"
-                id="trimmed"
-                name="trimmed"
-                checked={filters.trimmed}
-                onChange={handleFilterChange}
-                className="checkbox"
-              />
-              <label htmlFor="trimmed" className="checkbox-label">
-                Trimmed
-              </label>
-            </div>
-            
-            <div className="checkbox-container">
-              <input
-                type="checkbox"
-                id="frame"
-                name="frame"
-                checked={filters.frame}
-                onChange={handleFilterChange}
-                className="checkbox"
-              />
-              <label htmlFor="frame" className="checkbox-label">
-                With Frame
-              </label>
-            </div>
-            
-            <div className="checkbox-container">
-              <input
-                type="checkbox"
-                id="hasDyeName"
-                name="hasDyeName"
-                checked={filters.hasDyeName}
-                onChange={handleFilterChange}
-                className="checkbox"
-              />
-              <label htmlFor="hasDyeName" className="checkbox-label">
-                With dye.name
-              </label>
-            </div>
-          </div>
-        </div>
-        
-        <div className="flex gap-2">
-          <button
-            onClick={applyFilters}
-            className="btn btn-primary"
-          >
-            Apply Filters
-          </button>
-          <button
-            onClick={resetFilters}
-            className="btn btn-secondary"
-          >
-            Reset Filters
-          </button>
         </div>
       </div>
       
@@ -955,10 +955,6 @@ const CardFilterApp = () => {
           <p style={{textAlign: "center", padding: "1rem"}}>
             {file ? "No results matching the filter criteria." : "No data loaded. Please upload a file to see results."}
           </p>
-        )}
-        
-        {displayData.length > 100 && (
-          <p style={{fontSize: "0.875rem", marginTop: "0.5rem"}}>Showing first 100 of {displayData.length} records.</p>
         )}
         
         {/* Pagination controls */}
