@@ -604,6 +604,23 @@ const CardFilterApp = () => {
           </div>
         </div>
         
+        <div className="flex gap-2" style={{marginTop: "1.5rem"}}>
+          <button
+            onClick={applyFilters}
+            className="btn btn-primary"
+          >
+            Apply Filters
+          </button>
+          <button
+            onClick={resetFilters}
+            className="btn btn-secondary"
+          >
+            Reset Filters
+          </button>
+        </div>
+        
+        <div className="filter-section-divider"></div>
+        
         {/* Blacklist filters */}
         <h3 className="filter-section-title">Exclude Filters (Blacklist)</h3>
         
