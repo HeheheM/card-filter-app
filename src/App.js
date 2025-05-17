@@ -11,6 +11,7 @@ const CardFilterApp = () => {
   const [copyBatch, setCopyBatch] = useState(0);
   const [copiedAll, setCopiedAll] = useState(false);
   const [prefix, setPrefix] = useState('');
+  const [isDarkTheme, setIsDarkTheme] = useState(true); // Default to dark theme
   const [filters, setFilters] = useState({
     series: '',
     numberFrom: '',
@@ -24,6 +25,35 @@ const CardFilterApp = () => {
     hasDyeName: false,
     tag: ''
   });
+  
+  // Theme toggle effect
+  useEffect(() => {
+    // Check if theme preference exists in localStorage
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+      setIsDarkTheme(savedTheme === 'dark');
+    }
+    
+    // Apply theme class to document
+    applyTheme(savedTheme === 'dark' || (savedTheme === null && isDarkTheme));
+  }, []);
+  
+  // Function to apply the theme
+  const applyTheme = (dark) => {
+    if (dark) {
+      document.body.classList.add('dark-theme');
+    } else {
+      document.body.classList.remove('dark-theme');
+    }
+  };
+  
+  // Function to toggle theme
+  const toggleTheme = () => {
+    const newTheme = !isDarkTheme;
+    setIsDarkTheme(newTheme);
+    applyTheme(newTheme);
+    localStorage.setItem('theme', newTheme ? 'dark' : 'light');
+  };
   
   // Handle file upload
   const handleFileUpload = async (event) => {
@@ -335,6 +365,20 @@ const CardFilterApp = () => {
   
   return (
     <div className="container">
+      {/* Theme Toggle Switch */}
+      <div className="theme-switch-container">
+        <span className="theme-icon">☀️</span>
+        <label className="theme-switch">
+          <input 
+            type="checkbox" 
+            checked={isDarkTheme}
+            onChange={toggleTheme}
+          />
+          <span className="slider"></span>
+        </label>
+        <span className="theme-icon">🌙</span>
+      </div>
+      
       <h1 className="header">Card Filter Application</h1>
       
       {/* File upload */}
