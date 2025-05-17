@@ -1,33 +1,4 @@
-// Calculate the total number of pages
-  const totalPages = Math.ceil(displayData.length / itemsPerPage);
-  
-  // Get current page items
-  const getCurrentPageItems = () => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return displayData.slice(startIndex, endIndex);
-  };
-  
-  // Pagination controls
-  const goToFirstPage = () => setCurrentPage(1);
-  const goToPreviousPage = () => setCurrentPage(prev => Math.max(prev - 1, 1));
-  const goToNextPage = () => setCurrentPage(prev => Math.min(prev + 1, totalPages));
-  const goToLastPage = () => setCurrentPage(totalPages);
-  
-  // Handle direct page input
-  const handlePageInput = (e) => {
-    const value = parseInt(e.target.value);
-    if (!isNaN(value) && value >= 1 && value <= totalPages) {
-      setCurrentPage(value);
-    }
-  };
-  
-  // Handle items per page change
-  const handleItemsPerPageChange = (e) => {
-    const value = parseInt(e.target.value);
-    setItemsPerPage(value);
-    setCurrentPage(1); // Reset to first page when changing items per page
-  };import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Papa from 'papaparse';
 import './styles.css';
 
@@ -56,6 +27,37 @@ const CardFilterApp = () => {
     hasDyeName: false,
     tag: ''
   });
+  
+  // Calculate the total number of pages
+  const totalPages = Math.ceil(displayData.length / itemsPerPage);
+  
+  // Get current page items
+  const getCurrentPageItems = () => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return displayData.slice(startIndex, endIndex);
+  };
+  
+  // Pagination controls
+  const goToFirstPage = () => setCurrentPage(1);
+  const goToPreviousPage = () => setCurrentPage(prev => Math.max(prev - 1, 1));
+  const goToNextPage = () => setCurrentPage(prev => Math.min(prev + 1, totalPages));
+  const goToLastPage = () => setCurrentPage(totalPages);
+  
+  // Handle direct page input
+  const handlePageInput = (e) => {
+    const value = parseInt(e.target.value);
+    if (!isNaN(value) && value >= 1 && value <= totalPages) {
+      setCurrentPage(value);
+    }
+  };
+  
+  // Handle items per page change
+  const handleItemsPerPageChange = (e) => {
+    const value = parseInt(e.target.value);
+    setItemsPerPage(value);
+    setCurrentPage(1); // Reset to first page when changing items per page
+  };
   
   // Theme toggle effect
   useEffect(() => {
