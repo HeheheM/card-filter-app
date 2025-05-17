@@ -90,50 +90,30 @@ const CardFilterApp = () => {
     });
   };
   
-  // Load example data if no file is uploaded
+  // Initialize empty state - no automatic data loading
   useEffect(() => {
-    const loadExampleData = async () => {
-      try {
-        // First try to load from local file system if available
-        if (window.fs) {
-          try {
-            const response = await window.fs.readFile('paste.txt', { encoding: 'utf8' });
-            processCSVData(response);
-            return;
-          } catch (fsError) {
-            console.log('Could not load from fs, trying fetch', fsError);
+    // Only process data if a file has been selected by the user
+    if (file) {
+      const processCSVData = (csvText) => {
+        Papa.parse(csvText, {
+          header: true,
+          complete: (results) => {
+            setData(results.data);
+            setFilteredData(results.data);
+            setDisplayData(results.data);
+          },
+          error: (error) => {
+            console.error('Error parsing CSV:', error);
           }
-        }
-        
-        // Fallback to fetch API (for GitHub Pages)
-        try {
-          const response = await fetch('paste.txt');
-          const text = await response.text();
-          processCSVData(text);
-        } catch (fetchError) {
-          console.error('Error fetching example data:', fetchError);
-        }
-      } catch (error) {
-        console.error('Error loading example data:', error);
-      }
-    };
-    
-    const processCSVData = (csvText) => {
-      Papa.parse(csvText, {
-        header: true,
-        complete: (results) => {
-          setData(results.data);
-          setFilteredData(results.data);
-          setDisplayData(results.data);
-        },
-        error: (error) => {
-          console.error('Error parsing CSV:', error);
-        }
-      });
-    };
-    
-    if (!file) {
-      loadExampleData();
+        });
+      };
+      
+      // If needed in the future, process file data here
+    } else {
+      // Reset data states when no file is loaded
+      setData([]);
+      setFilteredData([]);
+      setDisplayData([]);
     }
   }, [file]);
   
@@ -394,6 +374,9 @@ const CardFilterApp = () => {
         {!loading && data.length > 0 && (
           <p className="text-success">Loaded {data.length} records.</p>
         )}
+        {!loading && data.length === 0 && !file && (
+          <p>No data loaded. Please upload a CSV or TXT file.</p>
+        )}
         
         <div className="form-group">
           <label className="form-label">Prefix for card codes:</label>
@@ -579,7 +562,7 @@ const CardFilterApp = () => {
       {/* Results section */}
       <div className="card">
         <div className="flex" style={{justifyContent: "space-between", marginBottom: "1rem"}}>
-          <h2>Results ({displayData.length}/{filteredData.length})</h2>
+          <h2>Results {data.length > 0 ? `(${displayData.length}/${filteredData.length})` : ""}</h2>
           <div className="flex gap-2">
             <button
               onClick={copyCardCodes}
@@ -639,7 +622,9 @@ const CardFilterApp = () => {
             </table>
           </div>
         ) : (
-          <p style={{textAlign: "center", padding: "1rem"}}>No results matching the filter criteria.</p>
+          <p style={{textAlign: "center", padding: "1rem"}}>
+            {file ? "No results matching the filter criteria." : "No data loaded. Please upload a file to see results."}
+          </p>
         )}
         
         {displayData.length > 100 && (
