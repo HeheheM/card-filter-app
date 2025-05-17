@@ -473,7 +473,7 @@ const CardFilterApp = () => {
                 className="checkbox"
               />
               <label htmlFor="hasDyeName" className="checkbox-label">
-                With dye.name
+                With dye
               </label>
             </div>
           </div>
