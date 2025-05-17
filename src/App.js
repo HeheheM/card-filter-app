@@ -184,24 +184,17 @@ const CardFilterApp = () => {
     setCopiedAll(false);
   };
   
-  // Handle filter changes - now applying filters automatically
+  // Handle filter changes - back to manual filtering
   const handleFilterChange = (e) => {
     const { name, value, type, checked } = e.target;
     
-    const newFilters = {
+    setFilters({
       ...filters,
       [name]: type === 'checkbox' ? checked : value
-    };
-    
-    setFilters(newFilters);
-    
-    // Apply filters immediately after state update
-    setTimeout(() => {
-      applyFilters();
-    }, 0);
+    });
   };
   
-  // Handle edition selection - now applying filters automatically
+  // Handle edition selection - back to manual filtering
   const handleEditionChange = (edition) => {
     const newEditions = [...filters.editions];
     
@@ -212,17 +205,10 @@ const CardFilterApp = () => {
       newEditions.push(edition);
     }
     
-    const newFilters = {
+    setFilters({
       ...filters,
       editions: newEditions
-    };
-    
-    setFilters(newFilters);
-    
-    // Apply filters immediately after state update
-    setTimeout(() => {
-      applyFilters();
-    }, 0);
+    });
   };
   
   // Reset filters
@@ -503,6 +489,12 @@ const CardFilterApp = () => {
         </div>
         
         <div className="flex gap-2">
+          <button
+            onClick={applyFilters}
+            className="btn btn-primary"
+          >
+            Apply Filters
+          </button>
           <button
             onClick={resetFilters}
             className="btn btn-secondary"
