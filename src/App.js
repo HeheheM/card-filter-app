@@ -1,4 +1,40 @@
-// Sort function
+import React, { useState, useEffect } from 'react';
+import Papa from 'papaparse';
+import './styles.css';
+
+const CardFilterApp = () => {
+  const [file, setFile] = useState(null);
+  const [data, setData] = useState([]);
+  const [filteredData, setFilteredData] = useState([]);
+  const [displayData, setDisplayData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [copyBatch, setCopyBatch] = useState(0);
+  const [copiedAll, setCopiedAll] = useState(false);
+  const [prefix, setPrefix] = useState('');
+  const [isDarkTheme, setIsDarkTheme] = useState(true); // Default to dark theme
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10); // Default 10 items per page
+  const [sortField, setSortField] = useState(null);
+  const [sortDirection, setSortDirection] = useState('asc');
+  const [filters, setFilters] = useState({
+    series: '',
+    numberFrom: '',
+    numberTo: '',
+    wishlistsFrom: '',
+    wishlistsTo: '',
+    editions: [],
+    morphed: false,
+    trimmed: false,
+    frame: false,
+    hasDyeName: false,
+    tag: '',
+    noneTag: false
+  });
+  
+  // Calculate the total number of pages
+  const totalPages = Math.ceil(displayData.length / itemsPerPage);
+  
+  // Sort function
   const handleSort = (field) => {
     // If clicking the same field, toggle direction or reset
     if (sortField === field) {
@@ -43,41 +79,7 @@
     });
     
     return sortedData;
-  };import React, { useState, useEffect } from 'react';
-import Papa from 'papaparse';
-import './styles.css';
-
-const CardFilterApp = () => {
-  const [file, setFile] = useState(null);
-  const [data, setData] = useState([]);
-  const [filteredData, setFilteredData] = useState([]);
-  const [displayData, setDisplayData] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [copyBatch, setCopyBatch] = useState(0);
-  const [copiedAll, setCopiedAll] = useState(false);
-  const [prefix, setPrefix] = useState('');
-  const [isDarkTheme, setIsDarkTheme] = useState(true); // Default to dark theme
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10); // Default 10 items per page
-  const [sortField, setSortField] = useState(null);
-  const [sortDirection, setSortDirection] = useState('asc');
-  const [filters, setFilters] = useState({
-    series: '',
-    numberFrom: '',
-    numberTo: '',
-    wishlistsFrom: '',
-    wishlistsTo: '',
-    editions: [],
-    morphed: false,
-    trimmed: false,
-    frame: false,
-    hasDyeName: false,
-    tag: '',
-    noneTag: false
-  });
-  
-  // Calculate the total number of pages
-  const totalPages = Math.ceil(displayData.length / itemsPerPage);
+  };
   
   // Get current page items
   const getCurrentPageItems = () => {
