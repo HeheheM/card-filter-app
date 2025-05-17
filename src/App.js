@@ -28,7 +28,15 @@ const CardFilterApp = () => {
     frame: false,
     hasDyeName: false,
     tag: '',
-    noneTag: false
+    noneTag: false,
+    // Blacklist filters
+    blacklistSeries: '',
+    blacklistCharacter: '',
+    blacklistTag: '',
+    excludeFrame: false,
+    excludeMorphed: false,
+    excludeTrimmed: false,
+    excludeDyeName: false
   });
   
   // Calculate the total number of pages
@@ -284,6 +292,58 @@ const CardFilterApp = () => {
       );
     }
     
+    // Apply blacklist filters
+    
+    // Blacklist series filter
+    if (filters.blacklistSeries) {
+      // Allow multiple series names separated by commas
+      const blacklistedSeries = filters.blacklistSeries.toLowerCase().split(',').map(s => s.trim());
+      results = results.filter(card => {
+        const cardSeries = card.series.toLowerCase();
+        return !blacklistedSeries.some(series => cardSeries.includes(series));
+      });
+    }
+    
+    // Blacklist character filter
+    if (filters.blacklistCharacter) {
+      // Allow multiple character names separated by commas
+      const blacklistedCharacters = filters.blacklistCharacter.toLowerCase().split(',').map(c => c.trim());
+      results = results.filter(card => {
+        const cardCharacter = card.character.toLowerCase();
+        return !blacklistedCharacters.some(character => cardCharacter.includes(character));
+      });
+    }
+    
+    // Blacklist tag filter
+    if (filters.blacklistTag) {
+      // Allow multiple tags separated by commas
+      const blacklistedTags = filters.blacklistTag.toLowerCase().split(',').map(t => t.trim());
+      results = results.filter(card => {
+        const cardTag = (card.tag || '').toLowerCase();
+        return !blacklistedTags.some(tag => cardTag.includes(tag));
+      });
+    }
+    
+    // Exclude cards with frame
+    if (filters.excludeFrame) {
+      results = results.filter(card => !card.frame || card.frame.trim() === '');
+    }
+    
+    // Exclude morphed cards
+    if (filters.excludeMorphed) {
+      results = results.filter(card => card.morphed !== "Yes");
+    }
+    
+    // Exclude trimmed cards
+    if (filters.excludeTrimmed) {
+      results = results.filter(card => card.trimmed !== "Yes");
+    }
+    
+    // Exclude cards with dye.name
+    if (filters.excludeDyeName) {
+      results = results.filter(card => !card["dye.name"] || card["dye.name"].trim() === '');
+    }
+    
     setFilteredData(results);
     setDisplayData(results);
     // Reset pagination when filters change
@@ -334,7 +394,15 @@ const CardFilterApp = () => {
       frame: false,
       hasDyeName: false,
       tag: '',
-      noneTag: false
+      noneTag: false,
+      // Reset blacklist filters
+      blacklistSeries: '',
+      blacklistCharacter: '',
+      blacklistTag: '',
+      excludeFrame: false,
+      excludeMorphed: false,
+      excludeTrimmed: false,
+      excludeDyeName: false
     });
     
     // Reset sorting
@@ -499,6 +567,9 @@ const CardFilterApp = () => {
       {/* Filters */}
       <div className="card">
         <h2>Filters</h2>
+        
+        {/* Include filters */}
+        <h3 className="filter-section-title">Include Filters</h3>
         <div className="form-group">
           <label className="form-label">Series:</label>
           <input
@@ -532,6 +603,108 @@ const CardFilterApp = () => {
             />
           </div>
         </div>
+        
+        {/* Blacklist filters */}
+        <h3 className="filter-section-title">Exclude Filters (Blacklist)</h3>
+        
+        <div className="form-group">
+          <label className="form-label">Exclude Series:</label>
+          <input
+            type="text"
+            name="blacklistSeries"
+            value={filters.blacklistSeries}
+            onChange={handleFilterChange}
+            className="form-input"
+            placeholder="Enter series to exclude (comma-separated)"
+          />
+          {filters.blacklistSeries && (
+            <p className="text-info" style={{fontSize: "0.75rem", marginTop: "0.25rem"}}>
+              Excluding series containing: {filters.blacklistSeries}
+            </p>
+          )}
+        </div>
+        
+        <div className="form-group">
+          <label className="form-label">Exclude Characters:</label>
+          <input
+            type="text"
+            name="blacklistCharacter"
+            value={filters.blacklistCharacter}
+            onChange={handleFilterChange}
+            className="form-input"
+            placeholder="Enter characters to exclude (comma-separated)"
+          />
+        </div>
+        
+        <div className="form-group">
+          <label className="form-label">Exclude Tags:</label>
+          <input
+            type="text"
+            name="blacklistTag"
+            value={filters.blacklistTag}
+            onChange={handleFilterChange}
+            className="form-input"
+            placeholder="Enter tags to exclude (comma-separated)"
+          />
+        </div>
+        
+        <div className="form-group">
+          <div className="flex flex-wrap gap-2">
+            <div className="checkbox-container">
+              <input
+                type="checkbox"
+                id="excludeFrame"
+                name="excludeFrame"
+                checked={filters.excludeFrame}
+                onChange={handleFilterChange}
+                className="checkbox"
+              />
+              <label htmlFor="excludeFrame" className="checkbox-label">
+                Exclude Cards with Frame
+              </label>
+            </div>
+            
+            <div className="checkbox-container">
+              <input
+                type="checkbox"
+                id="excludeMorphed"
+                name="excludeMorphed"
+                checked={filters.excludeMorphed}
+                onChange={handleFilterChange}
+                className="checkbox"
+              />
+              <label htmlFor="excludeMorphed" className="checkbox-label">
+                Exclude Morphed Cards
+              </label>
+            </div>
+            
+            <div className="checkbox-container">
+              <input
+                type="checkbox"
+                id="excludeTrimmed"
+                name="excludeTrimmed"
+                checked={filters.excludeTrimmed}
+                onChange={handleFilterChange}
+                className="checkbox"
+              />
+              <label htmlFor="excludeTrimmed" className="checkbox-label">
+                Exclude Trimmed Cards
+              </label>
+            </div>
+            
+            <div className="checkbox-container">
+              <input
+                type="checkbox"
+                id="excludeDyeName"
+                name="excludeDyeName"
+                checked={filters.excludeDyeName}
+                onChange={handleFilterChange}
+                className="checkbox"
+              />
+              <label htmlFor="excludeDyeName" className="checkbox-label">
+                Exclude Cards with dye.name
+              </label>
+            </div>
         
         <div className="form-group">
           <label className="form-label">Wishlists:</label>
