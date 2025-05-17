@@ -58,20 +58,41 @@ const CardFilterApp = () => {
   useEffect(() => {
     const loadExampleData = async () => {
       try {
-        const response = await window.fs.readFile('paste.txt', { encoding: 'utf8' });
-        Papa.parse(response, {
-          header: true,
-          complete: (results) => {
-            setData(results.data);
-            setFilteredData(results.data);
-          },
-          error: (error) => {
-            console.error('Error parsing CSV:', error);
+        // First try to load from local file system if available
+        if (window.fs) {
+          try {
+            const response = await window.fs.readFile('paste.txt', { encoding: 'utf8' });
+            processCSVData(response);
+            return;
+          } catch (fsError) {
+            console.log('Could not load from fs, trying fetch', fsError);
           }
-        });
+        }
+        
+        // Fallback to fetch API (for GitHub Pages)
+        try {
+          const response = await fetch('paste.txt');
+          const text = await response.text();
+          processCSVData(text);
+        } catch (fetchError) {
+          console.error('Error fetching example data:', fetchError);
+        }
       } catch (error) {
         console.error('Error loading example data:', error);
       }
+    };
+    
+    const processCSVData = (csvText) => {
+      Papa.parse(csvText, {
+        header: true,
+        complete: (results) => {
+          setData(results.data);
+          setFilteredData(results.data);
+        },
+        error: (error) => {
+          console.error('Error parsing CSV:', error);
+        }
+      });
     };
     
     if (!file) {
