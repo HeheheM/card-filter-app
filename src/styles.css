@@ -1,4 +1,18 @@
-.text-info {
+/* Sortable header styles */
+.sortable-header {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s;
+}
+
+.sortable-header:hover {
+  background-color: var(--border-color);
+}
+
+.sortable-header span {
+  margin-left: 4px;
+  display: inline-block;
+}.text-info {
   color: #3b82f6;
 }:root {
   /* Light theme variables */

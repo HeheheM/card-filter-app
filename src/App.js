@@ -1,4 +1,49 @@
-import React, { useState, useEffect } from 'react';
+// Sort function
+  const handleSort = (field) => {
+    // If clicking the same field, toggle direction or reset
+    if (sortField === field) {
+      if (sortDirection === 'asc') {
+        setSortDirection('desc');
+      } else {
+        // Reset sorting
+        setSortField(null);
+        setSortDirection('asc');
+      }
+    } else {
+      // New field, start with ascending
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+  
+  // Apply sorting to data
+  const getSortedData = (data) => {
+    if (!sortField) return data;
+    
+    const sortedData = [...data];
+    
+    sortedData.sort((a, b) => {
+      // Handle numeric fields
+      if (['number', 'wishlists', 'edition'].includes(sortField)) {
+        const aVal = parseInt(a[sortField]) || 0;
+        const bVal = parseInt(b[sortField]) || 0;
+        
+        return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+      }
+      
+      // Handle string fields
+      const aVal = a[sortField] || '';
+      const bVal = b[sortField] || '';
+      
+      if (sortDirection === 'asc') {
+        return aVal.localeCompare(bVal);
+      } else {
+        return bVal.localeCompare(aVal);
+      }
+    });
+    
+    return sortedData;
+  };import React, { useState, useEffect } from 'react';
 import Papa from 'papaparse';
 import './styles.css';
 
@@ -14,6 +59,8 @@ const CardFilterApp = () => {
   const [isDarkTheme, setIsDarkTheme] = useState(true); // Default to dark theme
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10); // Default 10 items per page
+  const [sortField, setSortField] = useState(null);
+  const [sortDirection, setSortDirection] = useState('asc');
   const [filters, setFilters] = useState({
     series: '',
     numberFrom: '',
@@ -36,7 +83,8 @@ const CardFilterApp = () => {
   const getCurrentPageItems = () => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    return displayData.slice(startIndex, endIndex);
+    const sortedData = getSortedData(displayData);
+    return sortedData.slice(startIndex, endIndex);
   };
   
   // Pagination controls
@@ -286,6 +334,10 @@ const CardFilterApp = () => {
       tag: '',
       noneTag: false
     });
+    
+    // Reset sorting
+    setSortField(null);
+    setSortDirection('asc');
     
     setFilteredData(data);
     setDisplayData(data);
@@ -659,15 +711,33 @@ const CardFilterApp = () => {
             <table className="table">
               <thead>
                 <tr>
-                  <th>Code</th>
-                  <th>Number</th>
-                  <th>Edition</th>
-                  <th>Character</th>
-                  <th>Series</th>
-                  <th>Quality</th>
-                  <th>Wishlists</th>
-                  <th>Frame</th>
-                  <th>Tag</th>
+                  <th onClick={() => handleSort('code')} className="sortable-header">
+                    Code {sortField === 'code' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
+                  </th>
+                  <th onClick={() => handleSort('number')} className="sortable-header">
+                    Number {sortField === 'number' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
+                  </th>
+                  <th onClick={() => handleSort('edition')} className="sortable-header">
+                    Edition {sortField === 'edition' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
+                  </th>
+                  <th onClick={() => handleSort('character')} className="sortable-header">
+                    Character {sortField === 'character' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
+                  </th>
+                  <th onClick={() => handleSort('series')} className="sortable-header">
+                    Series {sortField === 'series' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
+                  </th>
+                  <th onClick={() => handleSort('quality')} className="sortable-header">
+                    Quality {sortField === 'quality' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
+                  </th>
+                  <th onClick={() => handleSort('wishlists')} className="sortable-header">
+                    Wishlists {sortField === 'wishlists' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
+                  </th>
+                  <th onClick={() => handleSort('frame')} className="sortable-header">
+                    Frame {sortField === 'frame' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
+                  </th>
+                  <th onClick={() => handleSort('tag')} className="sortable-header">
+                    Tag {sortField === 'tag' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
+                  </th>
                 </tr>
               </thead>
               <tbody>
