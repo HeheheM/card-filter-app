@@ -591,7 +591,7 @@ const CardFilterApp = () => {
         
         {/* Results table */}
         {displayData.length > 0 ? (
-          <div style={{overflowX: "auto"}}>
+          <div style={{overflowX: "auto", maxHeight: "500px", overflowY: "auto"}}>
             <table className="table">
               <thead>
                 <tr>
