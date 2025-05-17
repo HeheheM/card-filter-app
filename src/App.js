@@ -314,7 +314,7 @@ const CardFilterApp = () => {
     }
     
     navigator.clipboard.writeText(codes);
-    alert(`Skopiowano kody ${startIndex+1}-${endIndex} z ${filteredData.length}`);
+    alert(`Copied codes ${startIndex+1}-${endIndex} of ${filteredData.length}`)
     
     // Remove copied cards from display
     const newDisplayData = displayData.filter(card => 
@@ -764,7 +764,7 @@ const CardFilterApp = () => {
         
         {filteredData.length !== displayData.length && (
           <p style={{fontSize: "0.875rem", marginTop: "0.5rem", color: "#3b82f6"}}>
-            Wyświetlanie tylko {displayData.length} z {filteredData.length} rekordów (pozostałe zostały już skopiowane).
+            Displaying only {displayData.length} of {filteredData.length} records (remaining have already been copied).
           </p>
         )}
       </div>
