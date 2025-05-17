@@ -10,6 +10,7 @@ const CardFilterApp = () => {
   const [loading, setLoading] = useState(false);
   const [copyBatch, setCopyBatch] = useState(0);
   const [copiedAll, setCopiedAll] = useState(false);
+  const [prefix, setPrefix] = useState('');
   const [filters, setFilters] = useState({
     series: '',
     numberFrom: '',
@@ -249,7 +250,14 @@ const CardFilterApp = () => {
     const startIndex = copyBatch * batchSize;
     const endIndex = Math.min(startIndex + batchSize, filteredData.length);
     const cardsToCopy = filteredData.slice(startIndex, endIndex);
-    const codes = cardsToCopy.map(card => card.code).join(', ');
+    
+    // Add prefix if it exists
+    let codes;
+    if (prefix.trim()) {
+      codes = cardsToCopy.map(card => `${prefix} ${card.code}`).join(', ');
+    } else {
+      codes = cardsToCopy.map(card => card.code).join(', ');
+    }
     
     navigator.clipboard.writeText(codes);
     alert(`Skopiowano kody ${startIndex+1}-${endIndex} z ${filteredData.length}`);
@@ -277,7 +285,13 @@ const CardFilterApp = () => {
     
     for (let i = 0; i < filteredData.length; i += maxCodesPerLine) {
       const batch = filteredData.slice(i, i + maxCodesPerLine);
-      content += batch.map(card => card.code).join(', ') + '\n';
+      
+      // Add prefix if it exists
+      if (prefix.trim()) {
+        content += prefix + ' ' + batch.map(card => card.code).join(', ') + '\n';
+      } else {
+        content += batch.map(card => card.code).join(', ') + '\n';
+      }
     }
     
     const blob = new Blob([content], { type: 'text/plain' });
@@ -336,6 +350,20 @@ const CardFilterApp = () => {
         {!loading && data.length > 0 && (
           <p className="text-success">Loaded {data.length} records.</p>
         )}
+        
+        <div className="form-group">
+          <label className="form-label">Prefix for card codes:</label>
+          <input
+            type="text"
+            value={prefix}
+            onChange={(e) => setPrefix(e.target.value)}
+            className="form-input"
+            placeholder="Enter prefix (e.g. 'kt t1')"
+          />
+          <p className="text-gray-500 text-sm mt-1">
+            This text will be added before each card code when copying or downloading.
+          </p>
+        </div>
       </div>
       
       {/* Filters */}
