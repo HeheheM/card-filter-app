@@ -458,6 +458,50 @@ const CardFilterApp = () => {
       setCopiedAll(true);
     }
   };
+
+  // Copy card codes to clipboard (one per line)
+  const copyCardCodesOneLine = () => {
+    const batchSize = 50;
+    const totalBatches = Math.ceil(filteredData.length / batchSize);
+    
+    // If we've copied all batches, reset to beginning and restore display
+    if (copyBatch >= totalBatches || copiedAll) {
+      setCopyBatch(0);
+      setCopiedAll(false);
+      setDisplayData([...filteredData]);
+      return;
+    }
+    
+    const startIndex = copyBatch * batchSize;
+    const endIndex = Math.min(startIndex + batchSize, filteredData.length);
+    const cardsToCopy = filteredData.slice(startIndex, endIndex);
+    
+    // Add prefix if it exists, one code per line
+    let codes;
+    if (prefix.trim()) {
+      codes = cardsToCopy.map(card => `${prefix} ${card.code}`).join('\n');
+    } else {
+      codes = cardsToCopy.map(card => card.code).join('\n');
+    }
+    
+    navigator.clipboard.writeText(codes);
+    alert(`Copied codes ${startIndex+1}-${endIndex} of ${filteredData.length} (one per line)`);
+    
+    // Remove copied cards from display
+    const newDisplayData = displayData.filter(card => 
+      !cardsToCopy.some(copiedCard => copiedCard.code === card.code)
+    );
+    
+    setDisplayData(newDisplayData);
+    
+    // Move to next batch
+    setCopyBatch(copyBatch + 1);
+    
+    // If we've copied all, mark as completed
+    if (endIndex >= filteredData.length) {
+      setCopiedAll(true);
+    }
+  };
   
   // Download card codes as text file
   const downloadCardCodes = () => {
@@ -480,6 +524,28 @@ const CardFilterApp = () => {
     const a = document.createElement('a');
     a.href = url;
     a.download = 'card_codes.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // Download card codes as text file (one per line)
+  const downloadCardCodesOneLine = () => {
+    let content = '';
+    
+    // Add prefix if it exists, one code per line
+    if (prefix.trim()) {
+      content = filteredData.map(card => `${prefix} ${card.code}`).join('\n');
+    } else {
+      content = filteredData.map(card => card.code).join('\n');
+    }
+    
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'card_codes_one_per_line.txt';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -882,8 +948,21 @@ const CardFilterApp = () => {
                   ? 'btn-secondary'
                   : 'btn-success'
               }`}
+              title="Copy up to 50 codes separated by commas"
             >
               {getCopyButtonText()}
+            </button>
+            <button
+              onClick={copyCardCodesOneLine}
+              disabled={filteredData.length === 0}
+              className={`btn ${
+                filteredData.length === 0
+                  ? 'btn-secondary'
+                  : 'btn-success'
+              }`}
+              title="Copy up to 50 codes with one code per line"
+            >
+              Copy (1 per line)
             </button>
             <button
               onClick={downloadCardCodes}
@@ -893,8 +972,21 @@ const CardFilterApp = () => {
                   ? 'btn-secondary'
                   : 'btn-purple'
               }`}
+              title="Download with up to 50 codes per line"
             >
-              Download as .txt
+              Download (50 max)
+            </button>
+            <button
+              onClick={downloadCardCodesOneLine}
+              disabled={filteredData.length === 0}
+              className={`btn ${
+                filteredData.length === 0
+                  ? 'btn-secondary'
+                  : 'btn-purple'
+              }`}
+              title="Download with one code per line"
+            >
+              Download (1 per line)
             </button>
           </div>
         </div>
