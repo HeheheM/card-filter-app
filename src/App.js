@@ -705,6 +705,8 @@ const CardFilterApp = () => {
                 Exclude Cards with dye.name
               </label>
             </div>
+          </div>
+        </div>
         
         <div className="form-group">
           <label className="form-label">Wishlists:</label>
