@@ -9,7 +9,9 @@ const CardFilterApp = () => {
   const [displayData, setDisplayData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [copyBatch, setCopyBatch] = useState(0);
+  const [singleCopyIndex, setSingleCopyIndex] = useState(0);
   const [copiedAll, setCopiedAll] = useState(false);
+  const [singleCopiedAll, setSingleCopiedAll] = useState(false);
   const [prefix, setPrefix] = useState('');
   const [isDarkTheme, setIsDarkTheme] = useState(true); // Default to dark theme
   const [currentPage, setCurrentPage] = useState(1);
@@ -413,6 +415,8 @@ const CardFilterApp = () => {
     setDisplayData(data);
     setCopyBatch(0);
     setCopiedAll(false);
+    setSingleCopyIndex(0);
+    setSingleCopiedAll(false);
   };
   
   // Copy card codes to clipboard - updated to handle batches and remove copied cards
@@ -462,15 +466,15 @@ const CardFilterApp = () => {
   // Copy card codes to clipboard (one card at a time)
   const copyCardCodesOneLine = () => {
     // If we've copied all cards, reset to beginning and restore display
-    if (filteredData.length === 0 || copyBatch >= filteredData.length || copiedAll) {
-      setCopyBatch(0);
-      setCopiedAll(false);
+    if (filteredData.length === 0 || singleCopyIndex >= filteredData.length || singleCopiedAll) {
+      setSingleCopyIndex(0);
+      setSingleCopiedAll(false);
       setDisplayData([...filteredData]);
       return;
     }
     
     // Get the single card to copy
-    const cardToCopy = filteredData[copyBatch];
+    const cardToCopy = filteredData[singleCopyIndex];
     
     // Add prefix if it exists, for a single code
     let code;
@@ -481,18 +485,18 @@ const CardFilterApp = () => {
     }
     
     navigator.clipboard.writeText(code);
-    alert(`Copied code ${copyBatch+1} of ${filteredData.length}: ${cardToCopy.code}`);
+    alert(`Copied code ${singleCopyIndex+1} of ${filteredData.length}: ${cardToCopy.code}`);
     
     // Remove only this copied card from display
     const newDisplayData = displayData.filter(card => card.code !== cardToCopy.code);
     setDisplayData(newDisplayData);
     
     // Move to next card
-    setCopyBatch(copyBatch + 1);
+    setSingleCopyIndex(singleCopyIndex + 1);
     
     // If we've copied all, mark as completed
-    if (copyBatch + 1 >= filteredData.length) {
-      setCopiedAll(true);
+    if (singleCopyIndex + 1 >= filteredData.length) {
+      setSingleCopiedAll(true);
     }
   };
   
@@ -571,6 +575,20 @@ const CardFilterApp = () => {
     const endIndex = Math.min(startIndex + batchSize, filteredData.length);
     
     return `Copy Codes (${startIndex}/${filteredData.length})`;
+  };
+  
+  // Get single copy button text
+  const getSingleCopyButtonText = () => {
+    if (filteredData.length === 0) {
+      return "Copy Single Code";
+    }
+    
+    // If we've copied all cards or marked as single copied all, show that we're starting over
+    if (singleCopyIndex >= filteredData.length || singleCopiedAll) {
+      return "Restore & Start Over";
+    }
+    
+    return `Copy Single Code (${singleCopyIndex}/${filteredData.length})`;
   };
   
   return (
@@ -955,7 +973,7 @@ const CardFilterApp = () => {
               }`}
               title="Copy a single code at a time"
             >
-              Copy Single Code
+              {getSingleCopyButtonText()}
             </button>
             <button
               onClick={downloadCardCodes}
