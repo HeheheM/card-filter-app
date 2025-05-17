@@ -602,6 +602,7 @@ const CardFilterApp = () => {
                   <th>Series</th>
                   <th>Quality</th>
                   <th>Wishlists</th>
+                  <th>Frame</th>
                   <th>Tag</th>
                 </tr>
               </thead>
@@ -615,6 +616,7 @@ const CardFilterApp = () => {
                     <td>{card.series}</td>
                     <td>{card.quality}</td>
                     <td>{card.wishlists}</td>
+                    <td>{card.frame || "—"}</td>
                     <td>{card.tag}</td>
                   </tr>
                 ))}
