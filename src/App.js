@@ -459,46 +459,39 @@ const CardFilterApp = () => {
     }
   };
 
-  // Copy card codes to clipboard (one per line)
+  // Copy card codes to clipboard (one card at a time)
   const copyCardCodesOneLine = () => {
-    const batchSize = 50;
-    const totalBatches = Math.ceil(filteredData.length / batchSize);
-    
-    // If we've copied all batches, reset to beginning and restore display
-    if (copyBatch >= totalBatches || copiedAll) {
+    // If we've copied all cards, reset to beginning and restore display
+    if (filteredData.length === 0 || copyBatch >= filteredData.length || copiedAll) {
       setCopyBatch(0);
       setCopiedAll(false);
       setDisplayData([...filteredData]);
       return;
     }
     
-    const startIndex = copyBatch * batchSize;
-    const endIndex = Math.min(startIndex + batchSize, filteredData.length);
-    const cardsToCopy = filteredData.slice(startIndex, endIndex);
+    // Get the single card to copy
+    const cardToCopy = filteredData[copyBatch];
     
-    // Add prefix if it exists, one code per line
-    let codes;
+    // Add prefix if it exists, for a single code
+    let code;
     if (prefix.trim()) {
-      codes = cardsToCopy.map(card => `${prefix} ${card.code}`).join('\n');
+      code = `${prefix} ${cardToCopy.code}`;
     } else {
-      codes = cardsToCopy.map(card => card.code).join('\n');
+      code = cardToCopy.code;
     }
     
-    navigator.clipboard.writeText(codes);
-    alert(`Copied codes ${startIndex+1}-${endIndex} of ${filteredData.length} (one per line)`);
+    navigator.clipboard.writeText(code);
+    alert(`Copied code ${copyBatch+1} of ${filteredData.length}: ${cardToCopy.code}`);
     
-    // Remove copied cards from display
-    const newDisplayData = displayData.filter(card => 
-      !cardsToCopy.some(copiedCard => copiedCard.code === card.code)
-    );
-    
+    // Remove only this copied card from display
+    const newDisplayData = displayData.filter(card => card.code !== cardToCopy.code);
     setDisplayData(newDisplayData);
     
-    // Move to next batch
+    // Move to next card
     setCopyBatch(copyBatch + 1);
     
     // If we've copied all, mark as completed
-    if (endIndex >= filteredData.length) {
+    if (copyBatch + 1 >= filteredData.length) {
       setCopiedAll(true);
     }
   };
@@ -960,9 +953,9 @@ const CardFilterApp = () => {
                   ? 'btn-secondary'
                   : 'btn-success'
               }`}
-              title="Copy up to 50 codes with one code per line"
+              title="Copy a single code at a time"
             >
-              Copy (1 per line)
+              Copy Single Code
             </button>
             <button
               onClick={downloadCardCodes}
