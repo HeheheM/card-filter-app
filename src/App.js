@@ -1,4 +1,33 @@
-import React, { useState, useEffect } from 'react';
+// Calculate the total number of pages
+  const totalPages = Math.ceil(displayData.length / itemsPerPage);
+  
+  // Get current page items
+  const getCurrentPageItems = () => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return displayData.slice(startIndex, endIndex);
+  };
+  
+  // Pagination controls
+  const goToFirstPage = () => setCurrentPage(1);
+  const goToPreviousPage = () => setCurrentPage(prev => Math.max(prev - 1, 1));
+  const goToNextPage = () => setCurrentPage(prev => Math.min(prev + 1, totalPages));
+  const goToLastPage = () => setCurrentPage(totalPages);
+  
+  // Handle direct page input
+  const handlePageInput = (e) => {
+    const value = parseInt(e.target.value);
+    if (!isNaN(value) && value >= 1 && value <= totalPages) {
+      setCurrentPage(value);
+    }
+  };
+  
+  // Handle items per page change
+  const handleItemsPerPageChange = (e) => {
+    const value = parseInt(e.target.value);
+    setItemsPerPage(value);
+    setCurrentPage(1); // Reset to first page when changing items per page
+  };import React, { useState, useEffect } from 'react';
 import Papa from 'papaparse';
 import './styles.css';
 
@@ -12,6 +41,8 @@ const CardFilterApp = () => {
   const [copiedAll, setCopiedAll] = useState(false);
   const [prefix, setPrefix] = useState('');
   const [isDarkTheme, setIsDarkTheme] = useState(true); // Default to dark theme
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10); // Default 10 items per page
   const [filters, setFilters] = useState({
     series: '',
     numberFrom: '',
@@ -190,6 +221,8 @@ const CardFilterApp = () => {
     
     setFilteredData(results);
     setDisplayData(results);
+    // Reset pagination when filters change
+    setCurrentPage(1);
     // Reset copy batch when filters change
     setCopyBatch(0);
     setCopiedAll(false);
@@ -607,7 +640,7 @@ const CardFilterApp = () => {
                 </tr>
               </thead>
               <tbody>
-                {displayData.slice(0, 100).map((card, index) => (
+                {getCurrentPageItems().map((card, index) => (
                   <tr key={index}>
                     <td style={{color: "#3b82f6", fontWeight: 500}}>{card.code}</td>
                     <td>{card.number}</td>
@@ -631,6 +664,76 @@ const CardFilterApp = () => {
         
         {displayData.length > 100 && (
           <p style={{fontSize: "0.875rem", marginTop: "0.5rem"}}>Showing first 100 of {displayData.length} records.</p>
+        )}
+        
+        {/* Pagination controls */}
+        {displayData.length > 0 && (
+          <div className="pagination-container" style={{marginTop: "1rem", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.75rem"}}>
+            <button 
+              onClick={goToFirstPage} 
+              disabled={currentPage === 1}
+              className={`btn ${currentPage === 1 ? 'btn-secondary' : 'btn-primary'}`}
+              title="First Page"
+            >
+              &laquo;
+            </button>
+            <button 
+              onClick={goToPreviousPage} 
+              disabled={currentPage === 1}
+              className={`btn ${currentPage === 1 ? 'btn-secondary' : 'btn-primary'}`}
+              title="Previous Page"
+            >
+              &lsaquo;
+            </button>
+            
+            <div style={{display: "flex", alignItems: "center", gap: "0.5rem"}}>
+              <span>Page</span>
+              <input 
+                type="number" 
+                min="1" 
+                max={totalPages} 
+                value={currentPage}
+                onChange={handlePageInput}
+                style={{width: "50px", textAlign: "center", padding: "0.25rem"}}
+                className="form-input"
+              />
+              <span>of {totalPages}</span>
+            </div>
+            
+            <button 
+              onClick={goToNextPage} 
+              disabled={currentPage === totalPages}
+              className={`btn ${currentPage === totalPages ? 'btn-secondary' : 'btn-primary'}`}
+              title="Next Page"
+            >
+              &rsaquo;
+            </button>
+            <button 
+              onClick={goToLastPage} 
+              disabled={currentPage === totalPages}
+              className={`btn ${currentPage === totalPages ? 'btn-secondary' : 'btn-primary'}`}
+              title="Last Page"
+            >
+              &raquo;
+            </button>
+            
+            <div style={{marginLeft: "1rem", display: "flex", alignItems: "center", gap: "0.5rem"}}>
+              <span>Show</span>
+              <select 
+                value={itemsPerPage} 
+                onChange={handleItemsPerPageChange}
+                className="form-input"
+                style={{padding: "0.25rem"}}
+              >
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+              <span>per page</span>
+            </div>
+          </div>
         )}
         
         {filteredData.length !== displayData.length && (
