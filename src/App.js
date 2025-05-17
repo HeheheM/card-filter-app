@@ -6,8 +6,10 @@ const CardFilterApp = () => {
   const [file, setFile] = useState(null);
   const [data, setData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
+  const [displayData, setDisplayData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [copyBatch, setCopyBatch] = useState(0);
+  const [copiedAll, setCopiedAll] = useState(false);
   const [filters, setFilters] = useState({
     series: '',
     numberFrom: '',
@@ -36,6 +38,7 @@ const CardFilterApp = () => {
         complete: (results) => {
           setData(results.data);
           setFilteredData(results.data);
+          setDisplayData(results.data);
           setLoading(false);
         },
         error: (error) => {
@@ -90,6 +93,7 @@ const CardFilterApp = () => {
         complete: (results) => {
           setData(results.data);
           setFilteredData(results.data);
+          setDisplayData(results.data);
         },
         error: (error) => {
           console.error('Error parsing CSV:', error);
@@ -174,8 +178,10 @@ const CardFilterApp = () => {
     }
     
     setFilteredData(results);
+    setDisplayData(results);
     // Reset copy batch when filters change
     setCopyBatch(0);
+    setCopiedAll(false);
   };
   
   // Handle filter changes - now applying filters automatically
@@ -236,29 +242,46 @@ const CardFilterApp = () => {
     });
     
     setFilteredData(data);
+    setDisplayData(data);
     setCopyBatch(0);
+    setCopiedAll(false);
   };
   
-  // Copy card codes to clipboard - updated to handle batches
+  // Copy card codes to clipboard - updated to handle batches and remove copied cards
   const copyCardCodes = () => {
     const batchSize = 50;
     const totalBatches = Math.ceil(filteredData.length / batchSize);
     
-    // If we've copied all batches, reset to beginning
-    if (copyBatch >= totalBatches) {
+    // If we've copied all batches, reset to beginning and restore display
+    if (copyBatch >= totalBatches || copiedAll) {
       setCopyBatch(0);
+      setCopiedAll(false);
+      setDisplayData([...filteredData]);
       return;
     }
     
     const startIndex = copyBatch * batchSize;
     const endIndex = Math.min(startIndex + batchSize, filteredData.length);
-    const codes = filteredData.slice(startIndex, endIndex).map(card => card.code).join(', ');
+    const cardsToCopy = filteredData.slice(startIndex, endIndex);
+    const codes = cardsToCopy.map(card => card.code).join(', ');
     
     navigator.clipboard.writeText(codes);
     alert(`Skopiowano kody ${startIndex+1}-${endIndex} z ${filteredData.length}`);
     
+    // Remove copied cards from display
+    const newDisplayData = displayData.filter(card => 
+      !cardsToCopy.some(copiedCard => copiedCard.code === card.code)
+    );
+    
+    setDisplayData(newDisplayData);
+    
     // Move to next batch
     setCopyBatch(copyBatch + 1);
+    
+    // If we've copied all, mark as completed
+    if (endIndex >= filteredData.length) {
+      setCopiedAll(true);
+    }
   };
   
   // Download card codes as text file
@@ -299,9 +322,9 @@ const CardFilterApp = () => {
       return "Copy Codes (max 50)";
     }
     
-    // If we've copied all batches, show that we're starting over
-    if (copyBatch >= totalBatches) {
-      return "Copy Codes (Start Over)";
+    // If we've copied all batches or marked as copied all, show that we're starting over
+    if (copyBatch >= totalBatches || copiedAll) {
+      return "Restore & Start Over";
     }
     
     const startIndex = copyBatch * batchSize;
@@ -473,7 +496,7 @@ const CardFilterApp = () => {
                 className="checkbox"
               />
               <label htmlFor="hasDyeName" className="checkbox-label">
-                With dye
+                With dye.name
               </label>
             </div>
           </div>
@@ -492,7 +515,7 @@ const CardFilterApp = () => {
       {/* Results section */}
       <div className="card">
         <div className="flex" style={{justifyContent: "space-between", marginBottom: "1rem"}}>
-          <h2>Results ({filteredData.length})</h2>
+          <h2>Results ({displayData.length}/{filteredData.length})</h2>
           <div className="flex gap-2">
             <button
               onClick={copyCardCodes}
@@ -520,7 +543,7 @@ const CardFilterApp = () => {
         </div>
         
         {/* Results table */}
-        {filteredData.length > 0 ? (
+        {displayData.length > 0 ? (
           <div style={{overflowX: "auto"}}>
             <table className="table">
               <thead>
@@ -536,7 +559,7 @@ const CardFilterApp = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredData.slice(0, 100).map((card, index) => (
+                {displayData.slice(0, 100).map((card, index) => (
                   <tr key={index}>
                     <td style={{color: "#3b82f6", fontWeight: 500}}>{card.code}</td>
                     <td>{card.number}</td>
@@ -555,8 +578,14 @@ const CardFilterApp = () => {
           <p style={{textAlign: "center", padding: "1rem"}}>No results matching the filter criteria.</p>
         )}
         
-        {filteredData.length > 100 && (
-          <p style={{fontSize: "0.875rem", marginTop: "0.5rem"}}>Showing first 100 of {filteredData.length} records.</p>
+        {displayData.length > 100 && (
+          <p style={{fontSize: "0.875rem", marginTop: "0.5rem"}}>Showing first 100 of {displayData.length} records.</p>
+        )}
+        
+        {filteredData.length !== displayData.length && (
+          <p style={{fontSize: "0.875rem", marginTop: "0.5rem", color: "#3b82f6"}}>
+            Wyświetlanie tylko {displayData.length} z {filteredData.length} rekordów (pozostałe zostały już skopiowane).
+          </p>
         )}
       </div>
     </div>
