@@ -60,6 +60,11 @@ const CardFilterApp = () => {
     setCurrentPage(1); // Reset to first page when changing items per page
   };
   
+  // Set document title
+  useEffect(() => {
+    document.title = "Karuta Cards Tool";
+  }, []);
+  
   // Theme toggle effect
   useEffect(() => {
     // Check if theme preference exists in localStorage
