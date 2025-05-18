@@ -222,9 +222,12 @@ const CardFilterApp = () => {
     
     // Filter by series
     if (filters.series) {
-      results = results.filter(card => 
-        card.series.toLowerCase().includes(filters.series.toLowerCase())
-      );
+      // Allow multiple series names separated by commas
+      const includedSeries = filters.series.toLowerCase().split(',').map(s => s.trim());
+      results = results.filter(card => {
+        const cardSeries = card.series.toLowerCase();
+        return includedSeries.some(series => cardSeries.includes(series));
+      });
     }
     
     // Filter by number range
@@ -607,7 +610,7 @@ const CardFilterApp = () => {
         <span className="theme-icon">🌙</span>
       </div>
       
-      <h1 className="header">Karuta Card Reader</h1>
+      <h1 className="header">Card Filter Application</h1>
       
       {/* File upload */}
       <div className="card">
@@ -657,8 +660,13 @@ const CardFilterApp = () => {
               value={filters.series}
               onChange={handleFilterChange}
               className="form-input"
-              placeholder="Enter series name..."
+              placeholder="Enter series names (comma-separated)"
             />
+            {filters.series && filters.series.includes(',') && (
+              <p className="text-info" style={{fontSize: "0.75rem", marginTop: "0.25rem"}}>
+                Including series containing: {filters.series}
+              </p>
+            )}
           </div>
           
           <div className="form-group">
