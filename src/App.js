@@ -70,7 +70,7 @@ const CardFilterApp = () => {
     
     sortedData.sort((a, b) => {
       // Handle numeric fields
-      if (['number', 'wishlists', 'edition'].includes(sortField)) {
+      if (['number', 'wishlists', 'edition', 'worker.effort'].includes(sortField)) {
         const aVal = parseInt(a[sortField]) || 0;
         const bVal = parseInt(b[sortField]) || 0;
         
@@ -1029,6 +1029,9 @@ const CardFilterApp = () => {
                   <th onClick={() => handleSort('wishlists')} className="sortable-header">
                     Wishlists {sortField === 'wishlists' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
                   </th>
+                  <th onClick={() => handleSort('worker.effort')} className="sortable-header">
+                    Worker Effort {sortField === 'worker.effort' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
+                  </th>
                   <th onClick={() => handleSort('frame')} className="sortable-header">
                     Frame {sortField === 'frame' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
                   </th>
@@ -1047,6 +1050,7 @@ const CardFilterApp = () => {
                     <td>{card.series}</td>
                     <td>{card.quality}</td>
                     <td>{card.wishlists}</td>
+                    <td>{card['worker.effort'] || "0"}</td>
                     <td>{card.frame || "—"}</td>
                     <td>{card.tag}</td>
                   </tr>
