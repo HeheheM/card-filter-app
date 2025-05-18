@@ -607,7 +607,7 @@ const CardFilterApp = () => {
         <span className="theme-icon">🌙</span>
       </div>
       
-      <h1 className="header">Card Filter Application</h1>
+      <h1 className="header">Karuta Card Reader</h1>
       
       {/* File upload */}
       <div className="card">
