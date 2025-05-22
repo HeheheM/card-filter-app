@@ -19,6 +19,7 @@ const CardFilterApp = () => {
   const [sortField, setSortField] = useState(null);
   const [sortDirection, setSortDirection] = useState('asc');
   const [filters, setFilters] = useState({
+    codes: '', // New field for card codes search
     series: '',
     numberFrom: '',
     numberTo: '',
@@ -31,7 +32,6 @@ const CardFilterApp = () => {
     hasDyeName: false,
     tag: '',
     noneTag: false,
-    codes: '', // New field for card codes search
     // Blacklist filters
     blacklistSeries: '',
     blacklistCharacter: '',
@@ -222,133 +222,160 @@ const CardFilterApp = () => {
   const applyFilters = () => {
     let results = [...data];
     
-    // Filter by series
-    if (filters.series) {
-      // Allow multiple series names separated by commas
-      const includedSeries = filters.series.toLowerCase().split(',').map(s => s.trim());
-      results = results.filter(card => {
-        const cardSeries = card.series.toLowerCase();
-        return includedSeries.some(series => cardSeries.includes(series));
+    // Filter by card codes (if specified)
+    if (filters.codes.trim()) {
+      const searchCodes = filters.codes.toLowerCase().split(',').map(code => code.trim()).filter(code => code.length > 0);
+      const foundCodes = [];
+      const notFound = [];
+      
+      // Find cards that match the specified codes
+      const codeResults = [];
+      searchCodes.forEach(searchCode => {
+        const matchingCards = data.filter(card => card.code.toLowerCase() === searchCode);
+        if (matchingCards.length > 0) {
+          codeResults.push(...matchingCards);
+          foundCodes.push(searchCode);
+        } else {
+          notFound.push(searchCode);
+        }
       });
+      
+      results = codeResults;
+      setNotFoundCodes(notFound);
+    } else {
+      setNotFoundCodes([]);
     }
     
-    // Filter by number range
-    if (filters.numberFrom) {
-      results = results.filter(card => 
-        parseInt(card.number) >= parseInt(filters.numberFrom)
-      );
-    }
-    
-    if (filters.numberTo) {
-      results = results.filter(card => 
-        parseInt(card.number) <= parseInt(filters.numberTo)
-      );
-    }
-    
-    // Filter by wishlists range
-    if (filters.wishlistsFrom) {
-      results = results.filter(card => 
-        parseInt(card.wishlists) >= parseInt(filters.wishlistsFrom)
-      );
-    }
-    
-    if (filters.wishlistsTo) {
-      results = results.filter(card => 
-        parseInt(card.wishlists) <= parseInt(filters.wishlistsTo)
-      );
-    }
-    
-    // Filter by editions
-    if (filters.editions.length > 0) {
-      results = results.filter(card => 
-        filters.editions.includes(card.edition)
-      );
-    }
-    
-    // Filter by morphed
-    if (filters.morphed) {
-      results = results.filter(card => card.morphed === "Yes");
-    }
-    
-    // Filter by trimmed
-    if (filters.trimmed) {
-      results = results.filter(card => card.trimmed === "Yes");
-    }
-    
-    // Filter by frame
-    if (filters.frame) {
-      results = results.filter(card => card.frame !== "");
-    }
-    
-    // Filter by dye.name
-    if (filters.hasDyeName) {
-      results = results.filter(card => card["dye.name"] !== "");
-    }
-    
-    // Filter by tag
-    if (filters.tag) {
-      results = results.filter(card => 
-        card.tag.toLowerCase().includes(filters.tag.toLowerCase())
-      );
-    }
-    
-    // Filter for cards with no tag
-    if (filters.noneTag) {
-      results = results.filter(card => 
-        !card.tag || card.tag.trim() === ''
-      );
-    }
-    
-    // Apply blacklist filters
-    
-    // Blacklist series filter
-    if (filters.blacklistSeries) {
-      // Allow multiple series names separated by commas
-      const blacklistedSeries = filters.blacklistSeries.toLowerCase().split(',').map(s => s.trim());
-      results = results.filter(card => {
-        const cardSeries = card.series.toLowerCase();
-        return !blacklistedSeries.some(series => cardSeries.includes(series));
-      });
-    }
-    
-    // Blacklist character filter
-    if (filters.blacklistCharacter) {
-      // Allow multiple character names separated by commas
-      const blacklistedCharacters = filters.blacklistCharacter.toLowerCase().split(',').map(c => c.trim());
-      results = results.filter(card => {
-        const cardCharacter = card.character.toLowerCase();
-        return !blacklistedCharacters.some(character => cardCharacter.includes(character));
-      });
-    }
-    
-    // Blacklist tag filter
-    if (filters.blacklistTag) {
-      // Allow multiple tags separated by commas
-      const blacklistedTags = filters.blacklistTag.toLowerCase().split(',').map(t => t.trim());
-      results = results.filter(card => {
-        const cardTag = (card.tag || '').toLowerCase();
-        return !blacklistedTags.some(tag => cardTag.includes(tag));
-      });
-    }
-    
-    // Exclude cards with frame
-    if (filters.excludeFrame) {
-      results = results.filter(card => !card.frame || card.frame.trim() === '');
-    }
-    
-    // Exclude morphed cards
-    if (filters.excludeMorphed) {
-      results = results.filter(card => card.morphed !== "Yes");
-    }
-    
-    // Exclude trimmed cards
-    if (filters.excludeTrimmed) {
-      results = results.filter(card => card.trimmed !== "Yes");
-    }
-    
-    // Exclude cards with dye.name
-    if (filters.excludeDyeName) {
-      results = results.filter(card => !card["dye.name"] || card["dye.name"].trim() === '');
+    // If codes filter is active, skip other filters (codes take priority)
+    if (!filters.codes.trim()) {
+      // Filter by series
+      if (filters.series) {
+        // Allow multiple series names separated by commas
+        const includedSeries = filters.series.toLowerCase().split(',').map(s => s.trim());
+        results = results.filter(card => {
+          const cardSeries = card.series.toLowerCase();
+          return includedSeries.some(series => cardSeries.includes(series));
+        });
+      }
+      
+      // Filter by number range
+      if (filters.numberFrom) {
+        results = results.filter(card => 
+          parseInt(card.number) >= parseInt(filters.numberFrom)
+        );
+      }
+      
+      if (filters.numberTo) {
+        results = results.filter(card => 
+          parseInt(card.number) <= parseInt(filters.numberTo)
+        );
+      }
+      
+      // Filter by wishlists range
+      if (filters.wishlistsFrom) {
+        results = results.filter(card => 
+          parseInt(card.wishlists) >= parseInt(filters.wishlistsFrom)
+        );
+      }
+      
+      if (filters.wishlistsTo) {
+        results = results.filter(card => 
+          parseInt(card.wishlists) <= parseInt(filters.wishlistsTo)
+        );
+      }
+      
+      // Filter by editions
+      if (filters.editions.length > 0) {
+        results = results.filter(card => 
+          filters.editions.includes(card.edition)
+        );
+      }
+      
+      // Filter by morphed
+      if (filters.morphed) {
+        results = results.filter(card => card.morphed === "Yes");
+      }
+      
+      // Filter by trimmed
+      if (filters.trimmed) {
+        results = results.filter(card => card.trimmed === "Yes");
+      }
+      
+      // Filter by frame
+      if (filters.frame) {
+        results = results.filter(card => card.frame !== "");
+      }
+      
+      // Filter by dye.name
+      if (filters.hasDyeName) {
+        results = results.filter(card => card["dye.name"] !== "");
+      }
+      
+      // Filter by tag
+      if (filters.tag) {
+        results = results.filter(card => 
+          card.tag.toLowerCase().includes(filters.tag.toLowerCase())
+        );
+      }
+      
+      // Filter for cards with no tag
+      if (filters.noneTag) {
+        results = results.filter(card => 
+          !card.tag || card.tag.trim() === ''
+        );
+      }
+      
+      // Apply blacklist filters
+      
+      // Blacklist series filter
+      if (filters.blacklistSeries) {
+        // Allow multiple series names separated by commas
+        const blacklistedSeries = filters.blacklistSeries.toLowerCase().split(',').map(s => s.trim());
+        results = results.filter(card => {
+          const cardSeries = card.series.toLowerCase();
+          return !blacklistedSeries.some(series => cardSeries.includes(series));
+        });
+      }
+      
+      // Blacklist character filter
+      if (filters.blacklistCharacter) {
+        // Allow multiple character names separated by commas
+        const blacklistedCharacters = filters.blacklistCharacter.toLowerCase().split(',').map(c => c.trim());
+        results = results.filter(card => {
+          const cardCharacter = card.character.toLowerCase();
+          return !blacklistedCharacters.some(character => cardCharacter.includes(character));
+        });
+      }
+      
+      // Blacklist tag filter
+      if (filters.blacklistTag) {
+        // Allow multiple tags separated by commas
+        const blacklistedTags = filters.blacklistTag.toLowerCase().split(',').map(t => t.trim());
+        results = results.filter(card => {
+          const cardTag = (card.tag || '').toLowerCase();
+          return !blacklistedTags.some(tag => cardTag.includes(tag));
+        });
+      }
+      
+      // Exclude cards with frame
+      if (filters.excludeFrame) {
+        results = results.filter(card => !card.frame || card.frame.trim() === '');
+      }
+      
+      // Exclude morphed cards
+      if (filters.excludeMorphed) {
+        results = results.filter(card => card.morphed !== "Yes");
+      }
+      
+      // Exclude trimmed cards
+      if (filters.excludeTrimmed) {
+        results = results.filter(card => card.trimmed !== "Yes");
+      }
+      
+      // Exclude cards with dye.name
+      if (filters.excludeDyeName) {
+        results = results.filter(card => !card["dye.name"] || card["dye.name"].trim() === '');
+      }
     }
     
     setFilteredData(results);
@@ -390,6 +417,7 @@ const CardFilterApp = () => {
   // Reset filters
   const resetFilters = () => {
     setFilters({
+      codes: '', // Reset codes filter
       series: '',
       numberFrom: '',
       numberTo: '',
@@ -415,6 +443,9 @@ const CardFilterApp = () => {
     // Reset sorting
     setSortField(null);
     setSortDirection('asc');
+    
+    // Clear not found codes
+    setNotFoundCodes([]);
     
     setFilteredData(data);
     setDisplayData(data);
@@ -546,7 +577,6 @@ const CardFilterApp = () => {
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
     a.download = 'card_codes_one_per_line.txt';
     document.body.appendChild(a);
     a.click();
@@ -655,6 +685,28 @@ const CardFilterApp = () => {
           <h3 className="filter-section-title">Include Filters</h3>
           
           <div className="form-group">
+            <label className="form-label">Search by Card Codes:</label>
+            <input
+              type="text"
+              name="codes"
+              value={filters.codes}
+              onChange={handleFilterChange}
+              className="form-input"
+              placeholder="Enter card codes separated by commas (e.g., vpvh96n, vzgrgsx)"
+            />
+            <p className="text-gray-500 text-sm mt-1">
+              Search for specific cards by their codes. This will override other filters when used.
+            </p>
+            {notFoundCodes.length > 0 && (
+              <div className="not-found-codes">
+                <p className="text-warning">
+                  <strong>Not found codes:</strong> {notFoundCodes.join(', ')}
+                </p>
+              </div>
+            )}
+          </div>
+          
+          <div className="form-group">
             <label className="form-label">Series:</label>
             <input
               type="text"
@@ -663,10 +715,16 @@ const CardFilterApp = () => {
               onChange={handleFilterChange}
               className="form-input"
               placeholder="Enter series names (comma-separated)"
+              disabled={filters.codes.trim() !== ''}
             />
-            {filters.series && filters.series.includes(',') && (
+            {filters.series && filters.series.includes(',') && !filters.codes.trim() && (
               <p className="text-info" style={{fontSize: "0.75rem", marginTop: "0.25rem"}}>
                 Including series containing: {filters.series}
+              </p>
+            )}
+            {filters.codes.trim() && (
+              <p className="text-gray-500 text-sm mt-1">
+                Disabled while using code search
               </p>
             )}
           </div>
@@ -681,6 +739,7 @@ const CardFilterApp = () => {
                 onChange={handleFilterChange}
                 className="form-input"
                 placeholder="From"
+                disabled={filters.codes.trim() !== ''}
               />
               <input
                 type="number"
@@ -689,8 +748,14 @@ const CardFilterApp = () => {
                 onChange={handleFilterChange}
                 className="form-input"
                 placeholder="To"
+                disabled={filters.codes.trim() !== ''}
               />
             </div>
+            {filters.codes.trim() && (
+              <p className="text-gray-500 text-sm mt-1">
+                Disabled while using code search
+              </p>
+            )}
           </div>
           
           <div className="form-group">
@@ -703,6 +768,7 @@ const CardFilterApp = () => {
                 onChange={handleFilterChange}
                 className="form-input"
                 placeholder="From"
+                disabled={filters.codes.trim() !== ''}
               />
               <input
                 type="number"
@@ -711,8 +777,14 @@ const CardFilterApp = () => {
                 onChange={handleFilterChange}
                 className="form-input"
                 placeholder="To"
+                disabled={filters.codes.trim() !== ''}
               />
             </div>
+            {filters.codes.trim() && (
+              <p className="text-gray-500 text-sm mt-1">
+                Disabled while using code search
+              </p>
+            )}
           </div>
           
           <div className="form-group">
@@ -725,19 +797,25 @@ const CardFilterApp = () => {
                 onChange={handleFilterChange}
                 className="form-input"
                 placeholder="Enter tag..."
-                disabled={filters.noneTag}
+                disabled={filters.noneTag || filters.codes.trim() !== ''}
               />
               <button
                 onClick={() => setFilters({...filters, noneTag: !filters.noneTag, tag: filters.noneTag ? filters.tag : ''})}
                 className={`btn ${filters.noneTag ? 'btn-primary' : 'btn-secondary'}`}
                 title="Show only cards with no tag"
+                disabled={filters.codes.trim() !== ''}
               >
                 None Tag
               </button>
             </div>
-            {filters.noneTag && (
+            {filters.noneTag && !filters.codes.trim() && (
               <p className="text-info" style={{fontSize: "0.75rem", marginTop: "0.25rem"}}>
                 Showing only cards with no tag. Tag search is disabled.
+              </p>
+            )}
+            {filters.codes.trim() && (
+              <p className="text-gray-500 text-sm mt-1">
+                Disabled while using code search
               </p>
             )}
           </div>
@@ -748,17 +826,23 @@ const CardFilterApp = () => {
               {getUniqueEditions().map((edition) => (
                 <button
                   key={edition}
-                  onClick={() => handleEditionChange(edition)}
+                  onClick={() => !filters.codes.trim() && handleEditionChange(edition)}
                   className={`chip ${
                     filters.editions.includes(edition)
                       ? 'chip-blue'
                       : 'chip-gray'
-                  }`}
+                  } ${filters.codes.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  disabled={filters.codes.trim() !== ''}
                 >
                   {edition}
                 </button>
               ))}
             </div>
+            {filters.codes.trim() && (
+              <p className="text-gray-500 text-sm mt-1">
+                Disabled while using code search
+              </p>
+            )}
           </div>
           
           <div className="form-group">
@@ -771,8 +855,9 @@ const CardFilterApp = () => {
                   checked={filters.morphed}
                   onChange={handleFilterChange}
                   className="checkbox"
+                  disabled={filters.codes.trim() !== ''}
                 />
-                <label htmlFor="morphed" className="checkbox-label">
+                <label htmlFor="morphed" className={`checkbox-label ${filters.codes.trim() ? 'opacity-50' : ''}`}>
                   Morphed
                 </label>
               </div>
@@ -785,8 +870,9 @@ const CardFilterApp = () => {
                   checked={filters.trimmed}
                   onChange={handleFilterChange}
                   className="checkbox"
+                  disabled={filters.codes.trim() !== ''}
                 />
-                <label htmlFor="trimmed" className="checkbox-label">
+                <label htmlFor="trimmed" className={`checkbox-label ${filters.codes.trim() ? 'opacity-50' : ''}`}>
                   Trimmed
                 </label>
               </div>
@@ -799,8 +885,9 @@ const CardFilterApp = () => {
                   checked={filters.frame}
                   onChange={handleFilterChange}
                   className="checkbox"
+                  disabled={filters.codes.trim() !== ''}
                 />
-                <label htmlFor="frame" className="checkbox-label">
+                <label htmlFor="frame" className={`checkbox-label ${filters.codes.trim() ? 'opacity-50' : ''}`}>
                   With Frame
                 </label>
               </div>
@@ -813,12 +900,18 @@ const CardFilterApp = () => {
                   checked={filters.hasDyeName}
                   onChange={handleFilterChange}
                   className="checkbox"
+                  disabled={filters.codes.trim() !== ''}
                 />
-                <label htmlFor="hasDyeName" className="checkbox-label">
+                <label htmlFor="hasDyeName" className={`checkbox-label ${filters.codes.trim() ? 'opacity-50' : ''}`}>
                   With dye.name
                 </label>
               </div>
             </div>
+            {filters.codes.trim() && (
+              <p className="text-gray-500 text-sm mt-1">
+                Disabled while using code search
+              </p>
+            )}
           </div>
           
           <div className="flex gap-2" style={{marginTop: "1rem"}}>
