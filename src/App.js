@@ -31,6 +31,7 @@ const CardFilterApp = () => {
     hasDyeName: false,
     tag: '',
     noneTag: false,
+    codes: '', // New field for card codes search
     // Blacklist filters
     blacklistSeries: '',
     blacklistCharacter: '',
@@ -40,6 +41,7 @@ const CardFilterApp = () => {
     excludeTrimmed: false,
     excludeDyeName: false
   });
+  const [notFoundCodes, setNotFoundCodes] = useState([]);
   
   // Calculate the total number of pages
   const totalPages = Math.ceil(displayData.length / itemsPerPage);
