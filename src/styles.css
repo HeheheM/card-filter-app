@@ -252,6 +252,17 @@ body {
   position: absolute;
   top: 1rem;
   right: 1rem;
+  z-index: 100;
+}
+
+@media (max-width: 768px) {
+  .theme-switch-container {
+    position: relative;
+    top: auto;
+    right: auto;
+    justify-content: center;
+    margin-bottom: 1rem;
+  }
 }
 
 .theme-switch {
