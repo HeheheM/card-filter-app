@@ -45,6 +45,8 @@ const CardFilterApp = () => {
     excludeDyeName: false
   });
   const [notFoundCodes, setNotFoundCodes] = useState([]);
+  const [showCodesModal, setShowCodesModal] = useState(false);
+  const [codesDisplayFormat, setCodesDisplayFormat] = useState('50per'); // '50per' or '1per'
   
   // Calculate the total number of pages
   const totalPages = Math.ceil(displayData.length / itemsPerPage);
@@ -132,14 +134,8 @@ const CardFilterApp = () => {
   
   // Theme toggle effect
   useEffect(() => {
-    // Check if theme preference exists in localStorage
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme) {
-      setIsDarkTheme(savedTheme === 'dark');
-    }
-    
     // Apply theme class to document
-    applyTheme(savedTheme === 'dark' || (savedTheme === null && isDarkTheme));
+    applyTheme(isDarkTheme);
   }, []);
   
   // Function to apply the theme
@@ -156,7 +152,6 @@ const CardFilterApp = () => {
     const newTheme = !isDarkTheme;
     setIsDarkTheme(newTheme);
     applyTheme(newTheme);
-    localStorage.setItem('theme', newTheme ? 'dark' : 'light');
   };
   
   // Handle file upload
@@ -654,6 +649,7 @@ const CardFilterApp = () => {
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
+    a.href = url;
     a.download = 'card_codes_one_per_line.txt';
     document.body.appendChild(a);
     a.click();
@@ -701,6 +697,43 @@ const CardFilterApp = () => {
     }
     
     return `Copy Single Code (${singleCopyIndex}/${filteredData.length})`;
+  };
+  
+  // Generate codes for display in modal
+  const generateCodesForDisplay = () => {
+    if (filteredData.length === 0) return '';
+    
+    if (codesDisplayFormat === '50per') {
+      const maxCodesPerLine = 50;
+      let content = '';
+      
+      for (let i = 0; i < filteredData.length; i += maxCodesPerLine) {
+        const batch = filteredData.slice(i, i + maxCodesPerLine);
+        
+        // Add prefix if it exists
+        if (prefix.trim()) {
+          content += prefix + ' ' + batch.map(card => card.code).join(', ') + '\n';
+        } else {
+          content += batch.map(card => card.code).join(', ') + '\n';
+        }
+      }
+      
+      return content.trim();
+    } else {
+      // 1 per line format
+      if (prefix.trim()) {
+        return filteredData.map(card => `${prefix} ${card.code}`).join('\n');
+      } else {
+        return filteredData.map(card => card.code).join('\n');
+      }
+    }
+  };
+  
+  // Copy codes from modal to clipboard
+  const copyCodesFromModal = () => {
+    const codes = generateCodesForDisplay();
+    navigator.clipboard.writeText(codes);
+    alert(`Copied ${filteredData.length} codes to clipboard!`);
   };
   
   return (
@@ -879,7 +912,7 @@ const CardFilterApp = () => {
               disabled={filters.codes.trim() !== ''}
             />
             {filters.series && filters.series.includes(',') && !filters.codes.trim() && (
-              <p className="text-info" style={{fontSize: "0.75rem", marginTop: "0.25rem"}}>
+              <p className="text-info text-sm mt-1">
                 Including series containing: {filters.series}
               </p>
             )}
@@ -970,7 +1003,7 @@ const CardFilterApp = () => {
               </button>
             </div>
             {filters.noneTag && !filters.codes.trim() && (
-              <p className="text-info" style={{fontSize: "0.75rem", marginTop: "0.25rem"}}>
+              <p className="text-info text-sm mt-1">
                 Showing only cards with no tag. Tag search is disabled.
               </p>
             )}
@@ -1075,7 +1108,7 @@ const CardFilterApp = () => {
             )}
           </div>
           
-          <div className="flex gap-2" style={{marginTop: "1rem"}}>
+          <div className="flex gap-2 mt-4">
             <button
               onClick={applyFilters}
               className="btn btn-primary"
@@ -1193,7 +1226,7 @@ const CardFilterApp = () => {
             </div>
           </div>
           
-          <div className="flex gap-2" style={{marginTop: "1rem"}}>
+          <div className="flex gap-2 mt-4">
             <button
               onClick={applyFilters}
               className="btn btn-primary"
@@ -1267,12 +1300,25 @@ const CardFilterApp = () => {
               <span className="btn-text-full">Download (1 per line)</span>
               <span className="btn-text-short">DL 1</span>
             </button>
+            <button
+              onClick={() => setShowCodesModal(true)}
+              disabled={filteredData.length === 0}
+              className={`btn ${
+                filteredData.length === 0
+                  ? 'btn-secondary'
+                  : 'btn-info'
+              }`}
+              title="Show codes in a modal window"
+            >
+              <span className="btn-text-full">Show Codes</span>
+              <span className="btn-text-short">Show</span>
+            </button>
           </div>
         </div>
         
         {/* Results table */}
         {displayData.length > 0 ? (
-          <div style={{overflowX: "auto", maxHeight: "500px", overflowY: "auto"}}>
+          <div className="table-container">
             <table className="table">
               <thead>
                 <tr>
@@ -1311,7 +1357,7 @@ const CardFilterApp = () => {
               <tbody>
                 {getCurrentPageItems().map((card, index) => (
                   <tr key={index}>
-                    <td style={{color: "#3b82f6", fontWeight: 500}}>{card.code}</td>
+                    <td className="code-cell">{card.code}</td>
                     <td>{card.number}</td>
                     <td>{card.edition}</td>
                     <td>{card.character}</td>
@@ -1327,14 +1373,14 @@ const CardFilterApp = () => {
             </table>
           </div>
         ) : (
-          <p style={{textAlign: "center", padding: "1rem"}}>
+          <p className="no-results">
             {file ? "No results matching the filter criteria." : "No data loaded. Please upload a file to see results."}
           </p>
         )}
         
         {/* Pagination controls */}
         {displayData.length > 0 && (
-          <div className="pagination-container" style={{marginTop: "1rem", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.75rem"}}>
+          <div className="pagination-container">
             <button 
               onClick={goToFirstPage} 
               disabled={currentPage === 1}
@@ -1352,7 +1398,7 @@ const CardFilterApp = () => {
               &lsaquo;
             </button>
             
-            <div style={{display: "flex", alignItems: "center", gap: "0.5rem"}}>
+            <div className="page-info">
               <span>Page</span>
               <input 
                 type="number" 
@@ -1360,8 +1406,7 @@ const CardFilterApp = () => {
                 max={totalPages} 
                 value={currentPage}
                 onChange={handlePageInput}
-                style={{width: "50px", textAlign: "center", padding: "0.25rem"}}
-                className="form-input"
+                className="page-input form-input"
               />
               <span>of {totalPages}</span>
             </div>
@@ -1383,13 +1428,12 @@ const CardFilterApp = () => {
               &raquo;
             </button>
             
-            <div style={{marginLeft: "1rem", display: "flex", alignItems: "center", gap: "0.5rem"}}>
+            <div className="items-per-page">
               <span>Show</span>
               <select 
                 value={itemsPerPage} 
                 onChange={handleItemsPerPageChange}
-                className="form-input"
-                style={{padding: "0.25rem"}}
+                className="items-select form-input"
               >
                 <option value="5">5</option>
                 <option value="10">10</option>
@@ -1403,11 +1447,63 @@ const CardFilterApp = () => {
         )}
         
         {filteredData.length !== displayData.length && (
-          <p style={{fontSize: "0.875rem", marginTop: "0.5rem", color: "#3b82f6"}}>
+          <p className="remaining-info">
             Displaying only {displayData.length} of {filteredData.length} records (remaining have already been copied).
           </p>
         )}
       </div>
+      
+      {/* Show Codes Modal */}
+      {showCodesModal && (
+        <div className="modal-overlay" onClick={() => setShowCodesModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Card Codes ({filteredData.length} total)</h3>
+              <button 
+                className="modal-close"
+                onClick={() => setShowCodesModal(false)}
+                title="Close modal"
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="modal-controls">
+              <div className="modal-format-toggle">
+                <button
+                  onClick={() => setCodesDisplayFormat('50per')}
+                  className={`btn ${codesDisplayFormat === '50per' ? 'btn-primary' : 'btn-secondary'}`}
+                >
+                  50 per line
+                </button>
+                <button
+                  onClick={() => setCodesDisplayFormat('1per')}
+                  className={`btn ${codesDisplayFormat === '1per' ? 'btn-primary' : 'btn-secondary'}`}
+                >
+                  1 per line
+                </button>
+              </div>
+              
+              <button
+                onClick={copyCodesFromModal}
+                className="btn btn-success"
+                title="Copy all codes to clipboard"
+              >
+                Copy All
+              </button>
+            </div>
+            
+            <div className="modal-body">
+              <textarea
+                className="codes-textarea"
+                value={generateCodesForDisplay()}
+                readOnly
+                rows={15}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
