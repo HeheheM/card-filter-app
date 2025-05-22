@@ -202,93 +202,60 @@ const CardFilterApp = () => {
     setUrlError('');
     setFile(null);
     
-    // Array of methods to try - working proxy first
-    const proxyServices = [
-      // Direct fetch first
-      null,
-      // Working proxy first
-      `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(csvUrl)}`,
-      // Backup proxies
-      `https://api.allorigins.win/raw?url=${encodeURIComponent(csvUrl)}`,
-      `https://thingproxy.freeboard.io/fetch/${csvUrl}`
-    ];
-    
-    let lastError = null;
-    
-    for (let i = 0; i < proxyServices.length; i++) {
-      try {
-        const urlToFetch = proxyServices[i] || csvUrl;
-        
-        if (i === 0) {
-          console.log('Trying direct fetch...');
-        } else if (i === 1) {
-          console.log('Trying working proxy: api.codetabs.com...');
-        } else {
-          console.log(`Trying backup proxy ${i}...`);
-        }
-        
-        const response = await fetch(urlToFetch);
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const csvContent = await response.text();
-        
-        // Check if content looks like CSV
-        if (!csvContent || csvContent.trim().length === 0) {
-          throw new Error('Empty file or invalid CSV content');
-        }
-        
-        // Check if it's actually CSV data (not an error page)
-        if (csvContent.includes('<html>') || csvContent.includes('<!DOCTYPE')) {
-          throw new Error('Received HTML instead of CSV data');
-        }
-        
-        Papa.parse(csvContent, {
-          header: true,
-          complete: (results) => {
-            if (results.errors && results.errors.length > 0) {
-              console.warn('CSV parsing warnings:', results.errors);
-            }
-            
-            if (!results.data || results.data.length === 0) {
-              setUrlError('No data found in CSV file');
-              setLoading(false);
-              return;
-            }
-            
-            setData(results.data);
-            setFilteredData(results.data);
-            setDisplayData(results.data);
-            setLoading(false);
-            console.log('✅ CSV loaded successfully!');
-          },
-          error: (error) => {
-            console.error('Error parsing CSV:', error);
-            setUrlError('Error parsing CSV file - please check if the file format is correct');
-            setLoading(false);
-          }
-        });
-        
-        // If we get here, it worked
-        return;
-        
-      } catch (error) {
-        lastError = error;
-        console.log(`❌ Attempt ${i + 1} failed:`, error.message);
-        
-        // Continue to next proxy unless it's the last one
-        if (i < proxyServices.length - 1) {
-          continue;
-        }
+    try {
+      console.log('Loading CSV via proxy...');
+      
+      // Use working proxy directly
+      const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(csvUrl)}`;
+      const response = await fetch(proxyUrl);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+      
+      const csvContent = await response.text();
+      
+      // Check if content looks like CSV
+      if (!csvContent || csvContent.trim().length === 0) {
+        throw new Error('Empty file or invalid CSV content');
+      }
+      
+      // Check if it's actually CSV data (not an error page)
+      if (csvContent.includes('<html>') || csvContent.includes('<!DOCTYPE')) {
+        throw new Error('Received HTML instead of CSV data');
+      }
+      
+      Papa.parse(csvContent, {
+        header: true,
+        complete: (results) => {
+          if (results.errors && results.errors.length > 0) {
+            console.warn('CSV parsing warnings:', results.errors);
+          }
+          
+          if (!results.data || results.data.length === 0) {
+            setUrlError('No data found in CSV file');
+            setLoading(false);
+            return;
+          }
+          
+          setData(results.data);
+          setFilteredData(results.data);
+          setDisplayData(results.data);
+          setLoading(false);
+          console.log('✅ CSV loaded successfully!');
+        },
+        error: (error) => {
+          console.error('Error parsing CSV:', error);
+          setUrlError('Error parsing CSV file - please check if the file format is correct');
+          setLoading(false);
+        }
+      });
+      
+    } catch (error) {
+      console.error('❌ Error loading CSV:', error.message);
+      setUrlError(`❌ Unable to load CSV from URL: ${error.message}\n\n✅ Please try:\n1. Check if the URL is correct and accessible\n2. Download the file directly and use "Upload File"`);
+      setLoading(false);
     }
-    
-    // If we get here, all attempts failed
-    console.error('All attempts failed. Last error:', lastError);
-    setUrlError(`❌ Unable to load CSV from URL.\n\n✅ Please try:\n1. Download the file directly and use "Upload File"\n2. Check if the URL is correct and accessible`);
-    setLoading(false);
   };
   
   // Read file content
