@@ -19,8 +19,9 @@ const CardFilterApp = () => {
   const [sortField, setSortField] = useState(null);
   const [sortDirection, setSortDirection] = useState('asc');
   const [csvUrl, setCsvUrl] = useState('');
-  const [inputMethod, setInputMethod] = useState('file'); // 'file' or 'url'
+  const [inputMethod, setInputMethod] = useState('file'); // 'file', 'url', or 'paste'
   const [urlError, setUrlError] = useState('');
+  const [csvText, setCsvText] = useState('');
   const [filters, setFilters] = useState({
     codes: '', // New field for card codes search
     series: '',
@@ -202,30 +203,111 @@ const CardFilterApp = () => {
     setUrlError('');
     setFile(null);
     
-    try {
-      // Try direct fetch first
-      let response;
+    // Array of proxy services to try
+    const proxyServices = [
+      // Direct fetch first
+      null,
+      // Different proxy services
+      `https://api.allorigins.win/raw?url=${encodeURIComponent(csvUrl)}`,
+      `https://cors-anywhere.herokuapp.com/${csvUrl}`,
+      `https://thingproxy.freeboard.io/fetch/${csvUrl}`,
+      `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(csvUrl)}`
+    ];
+    
+    let lastError = null;
+    
+    for (let i = 0; i < proxyServices.length; i++) {
       try {
-        response = await fetch(csvUrl);
-      } catch (corsError) {
-        // If CORS error, try with proxy
-        console.log('CORS error, trying with proxy...');
-        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(csvUrl)}`;
-        response = await fetch(proxyUrl);
+        const urlToFetch = proxyServices[i] || csvUrl;
+        
+        if (i > 0) {
+          console.log(`Trying proxy ${i}: ${proxyServices[i].split('/')[2]}...`);
+        }
+        
+        const response = await fetch(urlToFetch);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const csvContent = await response.text();
+        
+        // Check if content looks like CSV
+        if (!csvContent || csvContent.trim().length === 0) {
+          throw new Error('Empty file or invalid CSV content');
+        }
+        
+        // Check if it's actually CSV data (not an error page)
+        if (csvContent.includes('<html>') || csvContent.includes('<!DOCTYPE')) {
+          throw new Error('Received HTML instead of CSV data');
+        }
+        
+        Papa.parse(csvContent, {
+          header: true,
+          complete: (results) => {
+            if (results.errors && results.errors.length > 0) {
+              console.warn('CSV parsing warnings:', results.errors);
+            }
+            
+            if (!results.data || results.data.length === 0) {
+              setUrlError('No data found in CSV file');
+              setLoading(false);
+              return;
+            }
+            
+            setData(results.data);
+            setFilteredData(results.data);
+            setDisplayData(results.data);
+            setLoading(false);
+          },
+          error: (error) => {
+            console.error('Error parsing CSV:', error);
+            setUrlError('Error parsing CSV file - please check if the file format is correct');
+            setLoading(false);
+          }
+        });
+        
+        // If we get here, it worked
+        return;
+        
+      } catch (error) {
+        lastError = error;
+        console.log(`Attempt ${i + 1} failed:`, error.message);
+        
+        // Continue to next proxy unless it's the last one
+        if (i < proxyServices.length - 1) {
+          continue;
+        }
       }
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const csvContent = await response.text();
-      
-      // Check if content looks like CSV
-      if (!csvContent || csvContent.trim().length === 0) {
-        throw new Error('Empty file or invalid CSV content');
-      }
-      
-      Papa.parse(csvContent, {
+    }
+    
+    // If we get here, all attempts failed
+    console.error('All attempts failed. Last error:', lastError);
+    
+    if (lastError.message.includes('CORS') || lastError.message.includes('NetworkError') || lastError.message.includes('Failed to fetch')) {
+      setUrlError(`❌ Unable to load CSV from URL due to CORS restrictions.\n\n✅ Alternative solutions:\n1. Right-click the link → "Save link as" → download the file\n2. Use "Upload File" option instead\n3. Copy the CSV data and paste it in a text file, save as .csv`);
+    } else if (lastError.message.includes('Content-Length')) {
+      setUrlError(`❌ Proxy service error (file too large or corrupt).\n\n✅ Please try:\n1. Download the file directly from: ${csvUrl}\n2. Upload the downloaded file using "Upload File" option`);
+    } else {
+      setUrlError(`❌ Error loading CSV: ${lastError.message}\n\n✅ Try downloading the file manually and uploading it instead.`);
+    }
+    
+    setLoading(false);
+  };
+  
+  // Handle pasted CSV text
+  const handleCsvTextLoad = () => {
+    if (!csvText.trim()) {
+      setUrlError('Please paste CSV data');
+      return;
+    }
+    
+    setLoading(true);
+    setUrlError('');
+    setFile(null);
+    
+    try {
+      Papa.parse(csvText, {
         header: true,
         complete: (results) => {
           if (results.errors && results.errors.length > 0) {
@@ -233,7 +315,7 @@ const CardFilterApp = () => {
           }
           
           if (!results.data || results.data.length === 0) {
-            setUrlError('No data found in CSV file');
+            setUrlError('No data found in pasted CSV text');
             setLoading(false);
             return;
           }
@@ -245,19 +327,13 @@ const CardFilterApp = () => {
         },
         error: (error) => {
           console.error('Error parsing CSV:', error);
-          setUrlError('Error parsing CSV file - please check if the file format is correct');
+          setUrlError('Error parsing CSV data - please check if the format is correct');
           setLoading(false);
         }
       });
     } catch (error) {
-      console.error('Error fetching CSV:', error);
-      if (error.message.includes('CORS')) {
-        setUrlError('CORS error: The server does not allow cross-origin requests. Try downloading the file and uploading it instead.');
-      } else if (error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
-        setUrlError('Network error: Unable to access the URL. Please check if the URL is correct and accessible, or try downloading the file and uploading it instead.');
-      } else {
-        setUrlError(`Error loading CSV from URL: ${error.message}`);
-      }
+      console.error('Error processing CSV text:', error);
+      setUrlError(`Error processing CSV data: ${error.message}`);
       setLoading(false);
     }
   };
@@ -742,6 +818,7 @@ const CardFilterApp = () => {
                 onChange={() => {
                   setInputMethod('file');
                   setCsvUrl('');
+                  setCsvText('');
                   setUrlError('');
                 }}
                 className="checkbox"
@@ -760,11 +837,31 @@ const CardFilterApp = () => {
                 onChange={() => {
                   setInputMethod('url');
                   setFile(null);
+                  setCsvText('');
                 }}
                 className="checkbox"
               />
               <label htmlFor="url-method" className="checkbox-label">
                 Load from URL
+              </label>
+            </div>
+            
+            <div className="checkbox-container">
+              <input
+                type="radio"
+                id="paste-method"
+                name="input-method"
+                checked={inputMethod === 'paste'}
+                onChange={() => {
+                  setInputMethod('paste');
+                  setFile(null);
+                  setCsvUrl('');
+                  setUrlError('');
+                }}
+                className="checkbox"
+              />
+              <label htmlFor="paste-method" className="checkbox-label">
+                Paste CSV Data
               </label>
             </div>
           </div>
@@ -817,13 +914,52 @@ const CardFilterApp = () => {
           </div>
         )}
         
+        {/* Paste CSV section */}
+        {inputMethod === 'paste' && (
+          <div className="form-group">
+            <label className="form-label">Paste CSV data:</label>
+            <textarea
+              value={csvText}
+              onChange={(e) => setCsvText(e.target.value)}
+              className="form-input csv-textarea"
+              placeholder="Paste your CSV data here...&#10;Example:&#10;code,number,character,series&#10;abc123,1,Naruto,Naruto&#10;def456,2,Sasuke,Naruto"
+              rows="8"
+            />
+            <div className="flex gap-2 mt-2">
+              <button
+                onClick={handleCsvTextLoad}
+                disabled={loading}
+                className="btn btn-primary"
+              >
+                {loading ? 'Processing...' : 'Load CSV Data'}
+              </button>
+              <button
+                onClick={() => setCsvText('')}
+                className="btn btn-secondary"
+              >
+                Clear
+              </button>
+            </div>
+            <p className="text-gray-500 text-sm mt-1">
+              Paste CSV data directly. Make sure the first line contains column headers.
+            </p>
+            {urlError && (
+              <div className="url-error">
+                <p className="text-error">
+                  {urlError}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+        
         {/* Loading and status messages */}
         {loading && <p>Loading data...</p>}
         {!loading && data.length > 0 && (
           <p className="text-success">Loaded {data.length} records.</p>
         )}
-        {!loading && data.length === 0 && !file && !csvUrl && (
-          <p>No data loaded. Please upload a CSV/TXT file or provide a CSV URL.</p>
+        {!loading && data.length === 0 && !file && !csvUrl && !csvText && (
+          <p>No data loaded. Please upload a CSV/TXT file, provide a CSV URL, or paste CSV data.</p>
         )}
         
         <div className="form-group">
