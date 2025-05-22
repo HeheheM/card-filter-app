@@ -654,6 +654,7 @@ const CardFilterApp = () => {
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
+    a.href = url;
     a.download = 'card_codes_one_per_line.txt';
     document.body.appendChild(a);
     a.click();
@@ -667,6 +668,81 @@ const CardFilterApp = () => {
     
     const editions = [...new Set(data.map(card => card.edition))];
     return editions.sort((a, b) => parseInt(a) - parseInt(b));
+  };
+
+  // Render mobile card view
+  const renderMobileCards = () => {
+    const currentItems = getCurrentPageItems();
+    
+    return (
+      <div className="results-grid">
+        {currentItems.map((card, index) => (
+          <div key={index} className="result-card">
+            <div className="result-card-header">
+              <div className="result-card-code">{card.code}</div>
+              <div className="result-card-number">#{card.number}</div>
+            </div>
+            
+            <div className="result-card-body">
+              <div className="result-card-row">
+                <span className="result-card-label">Character:</span>
+                <span className="result-card-value">{card.character}</span>
+              </div>
+              
+              <div className="result-card-row">
+                <span className="result-card-label">Series:</span>
+                <span className="result-card-value">{card.series}</span>
+              </div>
+              
+              <div className="result-card-row">
+                <span className="result-card-label">Quality:</span>
+                <span className="result-card-value">{card.quality}</span>
+              </div>
+              
+              <div className="result-card-row">
+                <span className="result-card-label">Edition:</span>
+                <span className="result-card-value">{card.edition}</span>
+              </div>
+              
+              <div className="result-card-row">
+                <span className="result-card-label">Wishlists:</span>
+                <span className="result-card-value">{card.wishlists}</span>
+              </div>
+              
+              {(card['worker.effort'] && card['worker.effort'] !== '0') && (
+                <div className="result-card-row">
+                  <span className="result-card-label">Worker Effort:</span>
+                  <span className="result-card-value">{card['worker.effort']}</span>
+                </div>
+              )}
+              
+              {card.tag && (
+                <div className="result-card-row">
+                  <span className="result-card-label">Tag:</span>
+                  <span className="result-card-value">{card.tag}</span>
+                </div>
+              )}
+            </div>
+            
+            {/* Badges for special properties */}
+            <div className="result-card-badges">
+              {card.morphed === "Yes" && (
+                <span className="result-badge morphed">Morphed</span>
+              )}
+              {card.trimmed === "Yes" && (
+                <span className="result-badge trimmed">Trimmed</span>
+              )}
+              {card.frame && card.frame !== "" && (
+                <span className="result-badge frame">Frame</span>
+              )}
+              {card["dye.name"] && card["dye.name"] !== "" && (
+                <span className="result-badge dye">Dye</span>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   };
   
   // Get copy button text
@@ -728,7 +804,7 @@ const CardFilterApp = () => {
         {/* Input method selection */}
         <div className="form-group">
           <label className="form-label">Choose input method:</label>
-          <div className="flex gap-4">
+          <div className="flex mobile-horizontal gap-4">
             <div className="checkbox-container">
               <input
                 type="radio"
@@ -795,7 +871,7 @@ const CardFilterApp = () => {
               <button
                 onClick={handleUrlLoad}
                 disabled={loading}
-                className="btn btn-primary"
+                className="btn btn-primary mobile-inline"
               >
                 {loading ? 'Loading...' : 'Load CSV'}
               </button>
@@ -1007,7 +1083,7 @@ const CardFilterApp = () => {
           </div>
           
           <div className="form-group">
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap mobile-horizontal gap-2">
               <div className="checkbox-container">
                 <input
                   type="checkbox"
@@ -1075,7 +1151,7 @@ const CardFilterApp = () => {
             )}
           </div>
           
-          <div className="flex gap-2" style={{marginTop: "1rem"}}>
+          <div className="flex gap-2 mobile-stack" style={{marginTop: "1rem"}}>
             <button
               onClick={applyFilters}
               className="btn btn-primary"
@@ -1134,7 +1210,7 @@ const CardFilterApp = () => {
           </div>
           
           <div className="form-group">
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap mobile-horizontal gap-2">
               <div className="checkbox-container">
                 <input
                   type="checkbox"
@@ -1193,7 +1269,7 @@ const CardFilterApp = () => {
             </div>
           </div>
           
-          <div className="flex gap-2" style={{marginTop: "1rem"}}>
+          <div className="flex gap-2 mobile-stack" style={{marginTop: "1rem"}}>
             <button
               onClick={applyFilters}
               className="btn btn-primary"
@@ -1212,194 +1288,414 @@ const CardFilterApp = () => {
       
       {/* Results section */}
       <div className="card">
-        <div className="flex" style={{justifyContent: "space-between", marginBottom: "1rem"}}>
-          <h2>Results {data.length > 0 ? `(${displayData.length}/${filteredData.length})` : ""}</h2>
-          <div className="flex gap-2">
-            <button
-              onClick={copyCardCodes}
-              disabled={filteredData.length === 0}
-              className={`btn ${
-                filteredData.length === 0
-                  ? 'btn-secondary'
-                  : 'btn-success'
-              }`}
-              title="Copy up to 50 codes separated by commas"
-            >
-              {getCopyButtonText()}
-            </button>
-            <button
-              onClick={copyCardCodesOneLine}
-              disabled={filteredData.length === 0}
-              className={`btn ${
-                filteredData.length === 0
-                  ? 'btn-secondary'
-                  : 'btn-success'
-              }`}
-              title="Copy a single code at a time"
-            >
-              {getSingleCopyButtonText()}
-            </button>
-            <button
-              onClick={downloadCardCodes}
-              disabled={filteredData.length === 0}
-              className={`btn ${
-                filteredData.length === 0
-                  ? 'btn-secondary'
-                  : 'btn-purple'
-              }`}
-              title="Download with up to 50 codes per line"
-            >
-              Download (50 max)
-            </button>
-            <button
-              onClick={downloadCardCodesOneLine}
-              disabled={filteredData.length === 0}
-              className={`btn ${
-                filteredData.length === 0
-                  ? 'btn-secondary'
-                  : 'btn-purple'
-              }`}
-              title="Download with one code per line"
-            >
-              Download (1 per line)
-            </button>
+        {/* Desktop header */}
+        <div className="desktop-results">
+          <div className="flex mobile-stack" style={{justifyContent: "space-between", marginBottom: "1rem", alignItems: "flex-start"}}>
+            <h2>Results {data.length > 0 ? `(${displayData.length}/${filteredData.length})` : ""}</h2>
+            <div className="flex gap-2 mobile-stack mobile-full-width">
+              <button
+                onClick={copyCardCodes}
+                disabled={filteredData.length === 0}
+                className={`btn mobile-inline ${
+                  filteredData.length === 0
+                    ? 'btn-secondary'
+                    : 'btn-success'
+                }`}
+                title="Copy up to 50 codes separated by commas"
+              >
+                {getCopyButtonText()}
+              </button>
+              <button
+                onClick={copyCardCodesOneLine}
+                disabled={filteredData.length === 0}
+                className={`btn mobile-inline ${
+                  filteredData.length === 0
+                    ? 'btn-secondary'
+                    : 'btn-success'
+                }`}
+                title="Copy a single code at a time"
+              >
+                {getSingleCopyButtonText()}
+              </button>
+              <button
+                onClick={downloadCardCodes}
+                disabled={filteredData.length === 0}
+                className={`btn mobile-inline ${
+                  filteredData.length === 0
+                    ? 'btn-secondary'
+                    : 'btn-purple'
+                }`}
+                title="Download with up to 50 codes per line"
+              >
+                Download (50 max)
+              </button>
+              <button
+                onClick={downloadCardCodesOneLine}
+                disabled={filteredData.length === 0}
+                className={`btn mobile-inline ${
+                  filteredData.length === 0
+                    ? 'btn-secondary'
+                    : 'btn-purple'
+                }`}
+                title="Download with one code per line"
+              >
+                Download (1 per line)
+              </button>
+            </div>
           </div>
         </div>
-        
-        {/* Results table */}
-        {displayData.length > 0 ? (
-          <div style={{overflowX: "auto", maxHeight: "500px", overflowY: "auto"}}>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th onClick={() => handleSort('code')} className="sortable-header">
-                    Code {sortField === 'code' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
-                  </th>
-                  <th onClick={() => handleSort('number')} className="sortable-header">
-                    Number {sortField === 'number' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
-                  </th>
-                  <th onClick={() => handleSort('edition')} className="sortable-header">
-                    Edition {sortField === 'edition' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
-                  </th>
-                  <th onClick={() => handleSort('character')} className="sortable-header">
-                    Character {sortField === 'character' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
-                  </th>
-                  <th onClick={() => handleSort('series')} className="sortable-header">
-                    Series {sortField === 'series' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
-                  </th>
-                  <th onClick={() => handleSort('quality')} className="sortable-header">
-                    Quality {sortField === 'quality' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
-                  </th>
-                  <th onClick={() => handleSort('wishlists')} className="sortable-header">
-                    Wishlists {sortField === 'wishlists' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
-                  </th>
-                  <th onClick={() => handleSort('worker.effort')} className="sortable-header">
-                    Worker Effort {sortField === 'worker.effort' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
-                  </th>
-                  <th onClick={() => handleSort('frame')} className="sortable-header">
-                    Frame {sortField === 'frame' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
-                  </th>
-                  <th onClick={() => handleSort('tag')} className="sortable-header">
-                    Tag {sortField === 'tag' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {getCurrentPageItems().map((card, index) => (
-                  <tr key={index}>
-                    <td style={{color: "#3b82f6", fontWeight: 500}}>{card.code}</td>
-                    <td>{card.number}</td>
-                    <td>{card.edition}</td>
-                    <td>{card.character}</td>
-                    <td>{card.series}</td>
-                    <td>{card.quality}</td>
-                    <td>{card.wishlists}</td>
-                    <td>{card['worker.effort'] || "0"}</td>
-                    <td>{card.frame || "—"}</td>
-                    <td>{card.tag}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+
+        {/* Mobile header */}
+        <div className="mobile-results">
+          <div className="results-header">
+            <h2>Results {data.length > 0 ? `(${displayData.length}/${filteredData.length})` : ""}</h2>
           </div>
+          
+          {filteredData.length > 0 && (
+            <div className="results-actions">
+              <button
+                onClick={copyCardCodes}
+                disabled={filteredData.length === 0}
+                className={`btn ${
+                  filteredData.length === 0
+                    ? 'btn-secondary'
+                    : 'btn-success'
+                }`}
+                title="Copy up to 50 codes separated by commas"
+              >
+                {getCopyButtonText()}
+              </button>
+              <button
+                onClick={copyCardCodesOneLine}
+                disabled={filteredData.length === 0}
+                className={`btn ${
+                  filteredData.length === 0
+                    ? 'btn-secondary'
+                    : 'btn-success'
+                }`}
+                title="Copy a single code at a time"
+              >
+                {getSingleCopyButtonText()}
+              </button>
+              <button
+                onClick={downloadCardCodes}
+                disabled={filteredData.length === 0}
+                className={`btn ${
+                  filteredData.length === 0
+                    ? 'btn-secondary'
+                    : 'btn-purple'
+                }`}
+                title="Download with up to 50 codes per line"
+              >
+                Download (50 max)
+              </button>
+              <button
+                onClick={downloadCardCodesOneLine}
+                disabled={filteredData.length === 0}
+                className={`btn ${
+                  filteredData.length === 0
+                    ? 'btn-secondary'
+                    : 'btn-purple'
+                }`}
+                title="Download with one code per line"
+              >
+                Download (1 per line)
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Results content */}
+        {displayData.length > 0 ? (
+          <>
+            {/* Desktop table view */}
+            <div className="desktop-results">
+              <div className="table-container" style={{overflowX: "auto", maxHeight: "500px", overflowY: "auto"}}>
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th onClick={() => handleSort('code')} className="sortable-header">
+                        Code {sortField === 'code' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
+                      </th>
+                      <th onClick={() => handleSort('number')} className="sortable-header">
+                        Number {sortField === 'number' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
+                      </th>
+                      <th onClick={() => handleSort('edition')} className="sortable-header">
+                        Edition {sortField === 'edition' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
+                      </th>
+                      <th onClick={() => handleSort('character')} className="sortable-header">
+                        Character {sortField === 'character' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
+                      </th>
+                      <th onClick={() => handleSort('series')} className="sortable-header">
+                        Series {sortField === 'series' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
+                      </th>
+                      <th onClick={() => handleSort('quality')} className="sortable-header">
+                        Quality {sortField === 'quality' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
+                      </th>
+                      <th onClick={() => handleSort('wishlists')} className="sortable-header">
+                        Wishlists {sortField === 'wishlists' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
+                      </th>
+                      <th onClick={() => handleSort('worker.effort')} className="sortable-header">
+                        Worker Effort {sortField === 'worker.effort' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
+                      </th>
+                      <th onClick={() => handleSort('frame')} className="sortable-header">
+                        Frame {sortField === 'frame' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
+                      </th>
+                      <th onClick={() => handleSort('tag')} className="sortable-header">
+                        Tag {sortField === 'tag' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {getCurrentPageItems().map((card, index) => (
+                      <tr key={index}>
+                        <td style={{color: "#3b82f6", fontWeight: 500}}>{card.code}</td>
+                        <td>{card.number}</td>
+                        <td>{card.edition}</td>
+                        <td>{card.character}</td>
+                        <td>{card.series}</td>
+                        <td>{card.quality}</td>
+                        <td>{card.wishlists}</td>
+                        <td>{card['worker.effort'] || "0"}</td>
+                        <td>{card.frame || "—"}</td>
+                        <td>{card.tag}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Mobile card view */}
+            <div className="mobile-results">
+              {/* Mobile sorting controls */}
+              <div className="mobile-sort-controls">
+                <button
+                  onClick={() => handleSort('code')}
+                  className={`mobile-sort-button ${sortField === 'code' ? 'active' : ''}`}
+                >
+                  Code
+                  {sortField === 'code' && (
+                    <span className="mobile-sort-icon">
+                      {sortDirection === 'asc' ? '▲' : '▼'}
+                    </span>
+                  )}
+                </button>
+                <button
+                  onClick={() => handleSort('number')}
+                  className={`mobile-sort-button ${sortField === 'number' ? 'active' : ''}`}
+                >
+                  Number
+                  {sortField === 'number' && (
+                    <span className="mobile-sort-icon">
+                      {sortDirection === 'asc' ? '▲' : '▼'}
+                    </span>
+                  )}
+                </button>
+                <button
+                  onClick={() => handleSort('character')}
+                  className={`mobile-sort-button ${sortField === 'character' ? 'active' : ''}`}
+                >
+                  Character
+                  {sortField === 'character' && (
+                    <span className="mobile-sort-icon">
+                      {sortDirection === 'asc' ? '▲' : '▼'}
+                    </span>
+                  )}
+                </button>
+                <button
+                  onClick={() => handleSort('series')}
+                  className={`mobile-sort-button ${sortField === 'series' ? 'active' : ''}`}
+                >
+                  Series
+                  {sortField === 'series' && (
+                    <span className="mobile-sort-icon">
+                      {sortDirection === 'asc' ? '▲' : '▼'}
+                    </span>
+                  )}
+                </button>
+                <button
+                  onClick={() => handleSort('wishlists')}
+                  className={`mobile-sort-button ${sortField === 'wishlists' ? 'active' : ''}`}
+                >
+                  Wishlists
+                  {sortField === 'wishlists' && (
+                    <span className="mobile-sort-icon">
+                      {sortDirection === 'asc' ? '▲' : '▼'}
+                    </span>
+                  )}
+                </button>
+                <button
+                  onClick={() => handleSort('quality')}
+                  className={`mobile-sort-button ${sortField === 'quality' ? 'active' : ''}`}
+                >
+                  Quality
+                  {sortField === 'quality' && (
+                    <span className="mobile-sort-icon">
+                      {sortDirection === 'asc' ? '▲' : '▼'}
+                    </span>
+                  )}
+                </button>
+              </div>
+              
+              {renderMobileCards()}
+            </div>
+          </>
         ) : (
           <p style={{textAlign: "center", padding: "1rem"}}>
-            {file ? "No results matching the filter criteria." : "No data loaded. Please upload a file to see results."}
+            {file || csvUrl ? "No results matching the filter criteria." : "No data loaded. Please upload a file or provide a CSV URL to see results."}
           </p>
         )}
-        
+
         {/* Pagination controls */}
         {displayData.length > 0 && (
-          <div className="pagination-container" style={{marginTop: "1rem", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.75rem"}}>
-            <button 
-              onClick={goToFirstPage} 
-              disabled={currentPage === 1}
-              className={`btn ${currentPage === 1 ? 'btn-secondary' : 'btn-primary'}`}
-              title="First Page"
-            >
-              &laquo;
-            </button>
-            <button 
-              onClick={goToPreviousPage} 
-              disabled={currentPage === 1}
-              className={`btn ${currentPage === 1 ? 'btn-secondary' : 'btn-primary'}`}
-              title="Previous Page"
-            >
-              &lsaquo;
-            </button>
-            
-            <div style={{display: "flex", alignItems: "center", gap: "0.5rem"}}>
-              <span>Page</span>
-              <input 
-                type="number" 
-                min="1" 
-                max={totalPages} 
-                value={currentPage}
-                onChange={handlePageInput}
-                style={{width: "50px", textAlign: "center", padding: "0.25rem"}}
-                className="form-input"
-              />
-              <span>of {totalPages}</span>
+          <>
+            {/* Desktop pagination */}
+            <div className="desktop-results">
+              <div className="pagination-container" style={{marginTop: "1rem", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.75rem"}}>
+                <button 
+                  onClick={goToFirstPage} 
+                  disabled={currentPage === 1}
+                  className={`btn ${currentPage === 1 ? 'btn-secondary' : 'btn-primary'}`}
+                  title="First Page"
+                >
+                  &laquo;
+                </button>
+                <button 
+                  onClick={goToPreviousPage} 
+                  disabled={currentPage === 1}
+                  className={`btn ${currentPage === 1 ? 'btn-secondary' : 'btn-primary'}`}
+                  title="Previous Page"
+                >
+                  &lsaquo;
+                </button>
+                
+                <div style={{display: "flex", alignItems: "center", gap: "0.5rem"}}>
+                  <span>Page</span>
+                  <input 
+                    type="number" 
+                    min="1" 
+                    max={totalPages} 
+                    value={currentPage}
+                    onChange={handlePageInput}
+                    style={{width: "50px", textAlign: "center", padding: "0.25rem"}}
+                    className="form-input"
+                  />
+                  <span>of {totalPages}</span>
+                </div>
+                
+                <button 
+                  onClick={goToNextPage} 
+                  disabled={currentPage === totalPages}
+                  className={`btn ${currentPage === totalPages ? 'btn-secondary' : 'btn-primary'}`}
+                  title="Next Page"
+                >
+                  &rsaquo;
+                </button>
+                <button 
+                  onClick={goToLastPage} 
+                  disabled={currentPage === totalPages}
+                  className={`btn ${currentPage === totalPages ? 'btn-secondary' : 'btn-primary'}`}
+                  title="Last Page"
+                >
+                  &raquo;
+                </button>
+                
+                <div style={{marginLeft: "1rem", display: "flex", alignItems: "center", gap: "0.5rem"}}>
+                  <span>Show</span>
+                  <select 
+                    value={itemsPerPage} 
+                    onChange={handleItemsPerPageChange}
+                    className="form-input"
+                    style={{padding: "0.25rem"}}
+                  >
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                  </select>
+                  <span>per page</span>
+                </div>
+              </div>
             </div>
-            
-            <button 
-              onClick={goToNextPage} 
-              disabled={currentPage === totalPages}
-              className={`btn ${currentPage === totalPages ? 'btn-secondary' : 'btn-primary'}`}
-              title="Next Page"
-            >
-              &rsaquo;
-            </button>
-            <button 
-              onClick={goToLastPage} 
-              disabled={currentPage === totalPages}
-              className={`btn ${currentPage === totalPages ? 'btn-secondary' : 'btn-primary'}`}
-              title="Last Page"
-            >
-              &raquo;
-            </button>
-            
-            <div style={{marginLeft: "1rem", display: "flex", alignItems: "center", gap: "0.5rem"}}>
-              <span>Show</span>
-              <select 
-                value={itemsPerPage} 
-                onChange={handleItemsPerPageChange}
-                className="form-input"
-                style={{padding: "0.25rem"}}
-              >
-                <option value="5">5</option>
-                <option value="10">10</option>
-                <option value="25">25</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-              </select>
-              <span>per page</span>
+
+            {/* Mobile pagination */}
+            <div className="mobile-results">
+              <div className="pagination-container" style={{marginTop: "1rem"}}>
+                <div style={{display: "flex", justifyContent: "center", alignItems: "center", gap: "0.5rem", marginBottom: "1rem"}}>
+                  <button 
+                    onClick={goToFirstPage} 
+                    disabled={currentPage === 1}
+                    className={`btn ${currentPage === 1 ? 'btn-secondary' : 'btn-primary'}`}
+                    title="First Page"
+                  >
+                    &laquo;
+                  </button>
+                  <button 
+                    onClick={goToPreviousPage} 
+                    disabled={currentPage === 1}
+                    className={`btn ${currentPage === 1 ? 'btn-secondary' : 'btn-primary'}`}
+                    title="Previous Page"
+                  >
+                    &lsaquo;
+                  </button>
+                  
+                  <div style={{display: "flex", alignItems: "center", gap: "0.5rem"}}>
+                    <span>Page</span>
+                    <input 
+                      type="number" 
+                      min="1" 
+                      max={totalPages} 
+                      value={currentPage}
+                      onChange={handlePageInput}
+                      style={{width: "60px", textAlign: "center"}}
+                      className="form-input"
+                    />
+                    <span>of {totalPages}</span>
+                  </div>
+                  
+                  <button 
+                    onClick={goToNextPage} 
+                    disabled={currentPage === totalPages}
+                    className={`btn ${currentPage === totalPages ? 'btn-secondary' : 'btn-primary'}`}
+                    title="Next Page"
+                  >
+                    &rsaquo;
+                  </button>
+                  <button 
+                    onClick={goToLastPage} 
+                    disabled={currentPage === totalPages}
+                    className={`btn ${currentPage === totalPages ? 'btn-secondary' : 'btn-primary'}`}
+                    title="Last Page"
+                  >
+                    &raquo;
+                  </button>
+                </div>
+                
+                <div style={{display: "flex", justifyContent: "center", alignItems: "center", gap: "0.5rem"}}>
+                  <span>Show</span>
+                  <select 
+                    value={itemsPerPage} 
+                    onChange={handleItemsPerPageChange}
+                    className="form-input"
+                    style={{minWidth: "80px"}}
+                  >
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                  </select>
+                  <span>per page</span>
+                </div>
+              </div>
             </div>
-          </div>
+          </>
         )}
         
         {filteredData.length !== displayData.length && (
-          <p style={{fontSize: "0.875rem", marginTop: "0.5rem", color: "#3b82f6"}}>
+          <p style={{fontSize: "0.875rem", marginTop: "0.5rem", color: "#3b82f6", textAlign: "center"}}>
             Displaying only {displayData.length} of {filteredData.length} records (remaining have already been copied).
           </p>
         )}
