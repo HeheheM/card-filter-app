@@ -203,7 +203,16 @@ const CardFilterApp = () => {
     setFile(null);
     
     try {
-      const response = await fetch(csvUrl);
+      // Try direct fetch first
+      let response;
+      try {
+        response = await fetch(csvUrl);
+      } catch (corsError) {
+        // If CORS error, try with proxy
+        console.log('CORS error, trying with proxy...');
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(csvUrl)}`;
+        response = await fetch(proxyUrl);
+      }
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -211,9 +220,24 @@ const CardFilterApp = () => {
       
       const csvContent = await response.text();
       
+      // Check if content looks like CSV
+      if (!csvContent || csvContent.trim().length === 0) {
+        throw new Error('Empty file or invalid CSV content');
+      }
+      
       Papa.parse(csvContent, {
         header: true,
         complete: (results) => {
+          if (results.errors && results.errors.length > 0) {
+            console.warn('CSV parsing warnings:', results.errors);
+          }
+          
+          if (!results.data || results.data.length === 0) {
+            setUrlError('No data found in CSV file');
+            setLoading(false);
+            return;
+          }
+          
           setData(results.data);
           setFilteredData(results.data);
           setDisplayData(results.data);
@@ -221,13 +245,19 @@ const CardFilterApp = () => {
         },
         error: (error) => {
           console.error('Error parsing CSV:', error);
-          setUrlError('Error parsing CSV file');
+          setUrlError('Error parsing CSV file - please check if the file format is correct');
           setLoading(false);
         }
       });
     } catch (error) {
       console.error('Error fetching CSV:', error);
-      setUrlError(`Error loading CSV from URL: ${error.message}`);
+      if (error.message.includes('CORS')) {
+        setUrlError('CORS error: The server does not allow cross-origin requests. Try downloading the file and uploading it instead.');
+      } else if (error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
+        setUrlError('Network error: Unable to access the URL. Please check if the URL is correct and accessible, or try downloading the file and uploading it instead.');
+      } else {
+        setUrlError(`Error loading CSV from URL: ${error.message}`);
+      }
       setLoading(false);
     }
   };
