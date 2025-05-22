@@ -324,6 +324,48 @@ input:checked + .slider:before {
   margin-top: 1rem;
   padding-top: 1rem;
   border-top: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .pagination-container {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.page-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.page-input {
+  width: 50px;
+  text-align: center;
+  padding: 0.25rem;
+}
+
+.items-per-page {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.items-select {
+  padding: 0.25rem;
+  width: auto;
 }
 
 .pagination-container button {

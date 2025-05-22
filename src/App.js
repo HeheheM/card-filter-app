@@ -1212,9 +1212,9 @@ const CardFilterApp = () => {
       
       {/* Results section */}
       <div className="card">
-        <div className="flex" style={{justifyContent: "space-between", marginBottom: "1rem"}}>
+        <div className="results-header">
           <h2>Results {data.length > 0 ? `(${displayData.length}/${filteredData.length})` : ""}</h2>
-          <div className="flex gap-2">
+          <div className="results-actions">
             <button
               onClick={copyCardCodes}
               disabled={filteredData.length === 0}
@@ -1225,7 +1225,8 @@ const CardFilterApp = () => {
               }`}
               title="Copy up to 50 codes separated by commas"
             >
-              {getCopyButtonText()}
+              <span className="btn-text-full">{getCopyButtonText()}</span>
+              <span className="btn-text-short">Copy 50</span>
             </button>
             <button
               onClick={copyCardCodesOneLine}
@@ -1237,7 +1238,8 @@ const CardFilterApp = () => {
               }`}
               title="Copy a single code at a time"
             >
-              {getSingleCopyButtonText()}
+              <span className="btn-text-full">{getSingleCopyButtonText()}</span>
+              <span className="btn-text-short">Copy 1</span>
             </button>
             <button
               onClick={downloadCardCodes}
@@ -1249,7 +1251,8 @@ const CardFilterApp = () => {
               }`}
               title="Download with up to 50 codes per line"
             >
-              Download (50 max)
+              <span className="btn-text-full">Download (50 max)</span>
+              <span className="btn-text-short">DL 50</span>
             </button>
             <button
               onClick={downloadCardCodesOneLine}
@@ -1261,7 +1264,8 @@ const CardFilterApp = () => {
               }`}
               title="Download with one code per line"
             >
-              Download (1 per line)
+              <span className="btn-text-full">Download (1 per line)</span>
+              <span className="btn-text-short">DL 1</span>
             </button>
           </div>
         </div>
