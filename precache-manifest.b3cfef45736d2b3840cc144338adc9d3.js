@@ -1,10 +1,10 @@
 self.__precacheManifest = (self.__precacheManifest || []).concat([
   {
-    "revision": "c3e6d602c3fdb734532061747272e785",
+    "revision": "081b37362f60ad5d0723894e18e605c9",
     "url": "/card-filter-app/index.html"
   },
   {
-    "revision": "7cd3c9c96223fcda1c39",
+    "revision": "a4c76155e61b51583b6b",
     "url": "/card-filter-app/static/css/main.7ec97d1a.chunk.css"
   },
   {
@@ -16,8 +16,8 @@ self.__precacheManifest = (self.__precacheManifest || []).concat([
     "url": "/card-filter-app/static/js/3.68d536b4.chunk.js"
   },
   {
-    "revision": "7cd3c9c96223fcda1c39",
-    "url": "/card-filter-app/static/js/main.d6b657c0.chunk.js"
+    "revision": "a4c76155e61b51583b6b",
+    "url": "/card-filter-app/static/js/main.02a4fd46.chunk.js"
   },
   {
     "revision": "7c0f94e5c246ef103685",
