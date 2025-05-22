@@ -1,17 +1,17 @@
 {
   "files": {
-    "main.css": "/card-filter-app/static/css/main.7ec97d1a.chunk.css",
-    "main.js": "/card-filter-app/static/js/main.02a4fd46.chunk.js",
-    "main.js.map": "/card-filter-app/static/js/main.02a4fd46.chunk.js.map",
+    "main.css": "/card-filter-app/static/css/main.88e96cdf.chunk.css",
+    "main.js": "/card-filter-app/static/js/main.1c17fd94.chunk.js",
+    "main.js.map": "/card-filter-app/static/js/main.1c17fd94.chunk.js.map",
     "runtime~main.js": "/card-filter-app/static/js/runtime~main.6a35b065.js",
     "runtime~main.js.map": "/card-filter-app/static/js/runtime~main.6a35b065.js.map",
-    "static/js/2.91f51bbd.chunk.js": "/card-filter-app/static/js/2.91f51bbd.chunk.js",
-    "static/js/2.91f51bbd.chunk.js.map": "/card-filter-app/static/js/2.91f51bbd.chunk.js.map",
+    "static/js/2.b7257ad6.chunk.js": "/card-filter-app/static/js/2.b7257ad6.chunk.js",
+    "static/js/2.b7257ad6.chunk.js.map": "/card-filter-app/static/js/2.b7257ad6.chunk.js.map",
     "static/js/3.68d536b4.chunk.js": "/card-filter-app/static/js/3.68d536b4.chunk.js",
     "static/js/3.68d536b4.chunk.js.map": "/card-filter-app/static/js/3.68d536b4.chunk.js.map",
     "index.html": "/card-filter-app/index.html",
-    "precache-manifest.b3cfef45736d2b3840cc144338adc9d3.js": "/card-filter-app/precache-manifest.b3cfef45736d2b3840cc144338adc9d3.js",
+    "precache-manifest.5e950c99967c693592dafc5ab13d1be7.js": "/card-filter-app/precache-manifest.5e950c99967c693592dafc5ab13d1be7.js",
     "service-worker.js": "/card-filter-app/service-worker.js",
-    "static/css/main.7ec97d1a.chunk.css.map": "/card-filter-app/static/css/main.7ec97d1a.chunk.css.map"
+    "static/css/main.88e96cdf.chunk.css.map": "/card-filter-app/static/css/main.88e96cdf.chunk.css.map"
   }
 }
