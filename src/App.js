@@ -18,6 +18,9 @@ const CardFilterApp = () => {
   const [itemsPerPage, setItemsPerPage] = useState(10); // Default 10 items per page
   const [sortField, setSortField] = useState(null);
   const [sortDirection, setSortDirection] = useState('asc');
+  const [csvUrl, setCsvUrl] = useState('');
+  const [inputMethod, setInputMethod] = useState('file'); // 'file' or 'url'
+  const [urlError, setUrlError] = useState('');
   const [filters, setFilters] = useState({
     codes: '', // New field for card codes search
     series: '',
@@ -163,6 +166,7 @@ const CardFilterApp = () => {
     
     if (uploadedFile) {
       setLoading(true);
+      setUrlError('');
       const content = await readFileContent(uploadedFile);
       
       Papa.parse(content, {
@@ -178,6 +182,53 @@ const CardFilterApp = () => {
           setLoading(false);
         }
       });
+    }
+  };
+  
+  // Handle URL input
+  const handleUrlLoad = async () => {
+    if (!csvUrl.trim()) {
+      setUrlError('Please enter a URL');
+      return;
+    }
+    
+    // Check if URL ends with .csv
+    if (!csvUrl.toLowerCase().endsWith('.csv')) {
+      setUrlError('URL must point to a .csv file');
+      return;
+    }
+    
+    setLoading(true);
+    setUrlError('');
+    setFile(null);
+    
+    try {
+      const response = await fetch(csvUrl);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const csvContent = await response.text();
+      
+      Papa.parse(csvContent, {
+        header: true,
+        complete: (results) => {
+          setData(results.data);
+          setFilteredData(results.data);
+          setDisplayData(results.data);
+          setLoading(false);
+        },
+        error: (error) => {
+          console.error('Error parsing CSV:', error);
+          setUrlError('Error parsing CSV file');
+          setLoading(false);
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching CSV:', error);
+      setUrlError(`Error loading CSV from URL: ${error.message}`);
+      setLoading(false);
     }
   };
   
@@ -646,19 +697,103 @@ const CardFilterApp = () => {
       
       {/* File upload */}
       <div className="card">
-        <h2>Upload CSV File</h2>
-        <input 
-          type="file" 
-          accept=".csv, .txt" 
-          onChange={handleFileUpload} 
-          className="mb-2"
-        />
+        <h2>Load CSV Data</h2>
+        
+        {/* Input method selection */}
+        <div className="form-group">
+          <label className="form-label">Choose input method:</label>
+          <div className="flex gap-4">
+            <div className="checkbox-container">
+              <input
+                type="radio"
+                id="file-method"
+                name="input-method"
+                checked={inputMethod === 'file'}
+                onChange={() => {
+                  setInputMethod('file');
+                  setCsvUrl('');
+                  setUrlError('');
+                }}
+                className="checkbox"
+              />
+              <label htmlFor="file-method" className="checkbox-label">
+                Upload File
+              </label>
+            </div>
+            
+            <div className="checkbox-container">
+              <input
+                type="radio"
+                id="url-method"
+                name="input-method"
+                checked={inputMethod === 'url'}
+                onChange={() => {
+                  setInputMethod('url');
+                  setFile(null);
+                }}
+                className="checkbox"
+              />
+              <label htmlFor="url-method" className="checkbox-label">
+                Load from URL
+              </label>
+            </div>
+          </div>
+        </div>
+        
+        {/* File upload section */}
+        {inputMethod === 'file' && (
+          <div className="form-group">
+            <label className="form-label">Select CSV or TXT file:</label>
+            <input 
+              type="file" 
+              accept=".csv, .txt" 
+              onChange={handleFileUpload} 
+              className="form-input"
+            />
+          </div>
+        )}
+        
+        {/* URL input section */}
+        {inputMethod === 'url' && (
+          <div className="form-group">
+            <label className="form-label">CSV file URL:</label>
+            <div className="flex gap-2">
+              <input
+                type="url"
+                value={csvUrl}
+                onChange={(e) => setCsvUrl(e.target.value)}
+                className="form-input"
+                placeholder="https://example.com/file.csv"
+                style={{flex: 1}}
+              />
+              <button
+                onClick={handleUrlLoad}
+                disabled={loading}
+                className="btn btn-primary"
+              >
+                {loading ? 'Loading...' : 'Load CSV'}
+              </button>
+            </div>
+            <p className="text-gray-500 text-sm mt-1">
+              Enter a direct link to a CSV file. The URL must end with .csv
+            </p>
+            {urlError && (
+              <div className="url-error">
+                <p className="text-error">
+                  {urlError}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+        
+        {/* Loading and status messages */}
         {loading && <p>Loading data...</p>}
         {!loading && data.length > 0 && (
           <p className="text-success">Loaded {data.length} records.</p>
         )}
-        {!loading && data.length === 0 && !file && (
-          <p>No data loaded. Please upload a CSV or TXT file.</p>
+        {!loading && data.length === 0 && !file && !csvUrl && (
+          <p>No data loaded. Please upload a CSV/TXT file or provide a CSV URL.</p>
         )}
         
         <div className="form-group">
