@@ -698,6 +698,18 @@ const CardFilterApp = () => {
     
     return `Copy Single Code (${singleCopyIndex}/${filteredData.length})`;
   };
+
+  const buildCardImageUrl = (character, edition) => {
+    const slug = String(character || '')
+      .toLowerCase()
+      .replace(/['’]/g, '')           // usuń apostrofy
+      .replace(/[^a-z0-9]+/g, '-')    // wszystko poza a-z0-9 -> '-'
+      .replace(/^-+|-+$/g, '');       // przytnij wiodące/końcowe '-'
+
+    const ed = String(edition).toLowerCase();
+    return `http://d2l56h9h5tj8ue.cloudfront.net/images/cards/${slug}-${ed}.jpg`;
+  };
+
   
   // Generate codes for display in modal
   const generateCodesForDisplay = () => {
@@ -1322,6 +1334,7 @@ const CardFilterApp = () => {
             <table className="table">
               <thead>
                 <tr>
+                  <th>Image</th>
                   <th onClick={() => handleSort('code')} className="sortable-header">
                     Code {sortField === 'code' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
                   </th>
@@ -1357,6 +1370,15 @@ const CardFilterApp = () => {
               <tbody>
                 {getCurrentPageItems().map((card, index) => (
                   <tr key={index}>
+                    <td>
+                      <img
+                        src={buildCardImageUrl(card.character, card.edition)}
+                        alt={`${card.character} ${card.edition}`}
+                        className="card-thumb"
+                        loading="lazy"
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }} // ukryj, jeśli brak obrazka
+                      />
+                    </td>
                     <td className="code-cell">{card.code}</td>
                     <td>{card.number}</td>
                     <td>{card.edition}</td>
