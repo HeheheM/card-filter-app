@@ -51,6 +51,18 @@ const CardFilterApp = () => {
   // Calculate the total number of pages
   const totalPages = Math.ceil(displayData.length / itemsPerPage);
   
+  const buildCardImageUrl = (character, edition) => {
+    const slug = String(character || '')
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // usuń akcenty
+      .toLowerCase()
+      .replace(/['’]/g, '')           // usuń apostrofy
+      .replace(/[^a-z0-9]+/g, '-')    // nie-alfanumeryczne -> '-'
+      .replace(/^-+|-+$/g, '');       // przytnij '-'
+    
+    const ed = String(edition).toLowerCase();
+    return `https://d2l56h9h5tj8ue.cloudfront.net/images/cards/${slug}-${ed}.jpg`;
+  };
+
   // Sort function
   const handleSort = (field) => {
     // If clicking the same field, toggle direction or reset
@@ -698,18 +710,6 @@ const CardFilterApp = () => {
     
     return `Copy Single Code (${singleCopyIndex}/${filteredData.length})`;
   };
-
-  const buildCardImageUrl = (character, edition) => {
-    const slug = String(character || '')
-      .toLowerCase()
-      .replace(/['’]/g, '')           // usuń apostrofy
-      .replace(/[^a-z0-9]+/g, '-')    // wszystko poza a-z0-9 -> '-'
-      .replace(/^-+|-+$/g, '');       // przytnij wiodące/końcowe '-'
-
-    const ed = String(edition).toLowerCase();
-    return `http://d2l56h9h5tj8ue.cloudfront.net/images/cards/${slug}-${ed}.jpg`;
-  };
-
   
   // Generate codes for display in modal
   const generateCodesForDisplay = () => {
@@ -1376,7 +1376,7 @@ const CardFilterApp = () => {
                         alt={`${card.character} ${card.edition}`}
                         className="card-thumb"
                         loading="lazy"
-                        onError={(e) => { e.currentTarget.style.display = 'none'; }} // ukryj, jeśli brak obrazka
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }} // ukryj jeśli brak obrazka
                       />
                     </td>
                     <td className="code-cell">{card.code}</td>
