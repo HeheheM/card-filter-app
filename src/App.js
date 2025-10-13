@@ -1372,11 +1372,15 @@ const CardFilterApp = () => {
                   <tr key={index}>
                     <td>
                       <img
+                        key={`${card.code}-${card.edition}`}
                         src={buildCardImageUrl(card.character, card.edition)}
                         alt={`${card.character} ${card.edition}`}
                         className="card-thumb"
                         loading="lazy"
-                        onError={(e) => { e.currentTarget.style.display = 'none'; }} // ukryj jeśli brak obrazka
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = 'https://via.placeholder.com/56x80?text=No+Img';
+                        }}
                       />
                     </td>
                     <td className="code-cell">{card.code}</td>
