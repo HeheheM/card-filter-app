@@ -47,6 +47,7 @@ const CardFilterApp = () => {
   const [notFoundCodes, setNotFoundCodes] = useState([]);
   const [showCodesModal, setShowCodesModal] = useState(false);
   const [codesDisplayFormat, setCodesDisplayFormat] = useState('50per'); // '50per' or '1per'
+  const [fullImage, setFullImage] = useState(null);
   
   // Calculate the total number of pages
   const totalPages = Math.ceil(displayData.length / itemsPerPage);
@@ -1375,12 +1376,13 @@ const CardFilterApp = () => {
                         key={`${card.code}-${card.edition}`}
                         src={buildCardImageUrl(card.character, card.edition)}
                         alt={`${card.character} ${card.edition}`}
-                        className="card-thumb"
+                        className="card-thumb zoomable"
                         loading="lazy"
                         onError={(e) => {
                           e.currentTarget.onerror = null;
                           e.currentTarget.src = 'https://via.placeholder.com/56x80?text=No+Img';
                         }}
+                        onClick={() => setFullImage(buildCardImageUrl(card.character, card.edition))}
                       />
                     </td>
                     <td className="code-cell">{card.code}</td>
@@ -1530,6 +1532,22 @@ const CardFilterApp = () => {
           </div>
         </div>
       )}
+      {/* Full Image Modal */}
+      {fullImage && (
+        <div className="image-modal-overlay" onClick={() => setFullImage(null)}>
+          <div className="image-modal-content" onClick={(e) => e.stopPropagation()}>
+            <img src={fullImage} alt="Full" className="image-modal-full" />
+            <button
+              className="image-modal-close"
+              onClick={() => setFullImage(null)}
+              title="Close"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
