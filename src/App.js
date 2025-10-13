@@ -52,16 +52,24 @@ const CardFilterApp = () => {
   // Calculate the total number of pages
   const totalPages = Math.ceil(displayData.length / itemsPerPage);
   
-  const buildCardImageUrl = (character, edition) => {
-    const slug = String(character || '')
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // usuń akcenty
-      .toLowerCase()
-      .replace(/['’]/g, '')           // usuń apostrofy
-      .replace(/[^a-z0-9]+/g, '-')    // nie-alfanumeryczne -> '-'
-      .replace(/^-+|-+$/g, '');       // przytnij '-'
-    
+  const buildCardImageUrl = (character, series, edition) => {
+    const slugify = (text) =>
+      String(text || '')
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/['’]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+  
+    const charSlug = slugify(character);
+    const seriesSlug = slugify(series);
     const ed = String(edition).toLowerCase();
-    return `https://d2l56h9h5tj8ue.cloudfront.net/images/cards/${slug}-${ed}.jpg`;
+  
+    // Najpierw z serią
+    return {
+      primary: `https://d2l56h9h5tj8ue.cloudfront.net/images/cards/${charSlug}-${seriesSlug}-${ed}.jpg`,
+      fallback: `https://d2l56h9h5tj8ue.cloudfront.net/images/cards/${charSlug}-${ed}.jpg`
+    };
   };
 
   // Sort function
@@ -1374,15 +1382,23 @@ const CardFilterApp = () => {
                     <td>
                       <img
                         key={`${card.code}-${card.edition}`}
-                        src={buildCardImageUrl(card.character, card.edition)}
-                        alt={`${card.character} ${card.edition}`}
+                        src={buildCardImageUrl(card.character, card.series, card.edition).primary}
+                        alt={`${card.character} ${card.series} ${card.edition}`}
                         className="card-thumb zoomable"
                         loading="lazy"
                         onError={(e) => {
-                          e.currentTarget.onerror = null;
-                          e.currentTarget.src = 'https://via.placeholder.com/56x80?text=No+Img';
+                          const { fallback } = buildCardImageUrl(card.character, card.series, card.edition);
+                          if (!e.currentTarget.dataset.triedFallback) {
+                            e.currentTarget.dataset.triedFallback = "true";
+                            e.currentTarget.src = fallback; // spróbuj drugi adres
+                          } else {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = 'https://via.placeholder.com/56x80?text=No+Img';
+                          }
                         }}
-                        onClick={() => setFullImage(buildCardImageUrl(card.character, card.edition))}
+                        onClick={() =>
+                          setFullImage(buildCardImageUrl(card.character, card.series, card.edition).primary)
+                        }
                       />
                     </td>
                     <td className="code-cell">{card.code}</td>
