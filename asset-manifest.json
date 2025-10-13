@@ -1,8 +1,8 @@
 {
   "files": {
-    "main.css": "/card-filter-app/static/css/main.e12650e2.chunk.css",
-    "main.js": "/card-filter-app/static/js/main.56cc0f85.chunk.js",
-    "main.js.map": "/card-filter-app/static/js/main.56cc0f85.chunk.js.map",
+    "main.css": "/card-filter-app/static/css/main.0e97c9fc.chunk.css",
+    "main.js": "/card-filter-app/static/js/main.0345a79b.chunk.js",
+    "main.js.map": "/card-filter-app/static/js/main.0345a79b.chunk.js.map",
     "runtime~main.js": "/card-filter-app/static/js/runtime~main.6a35b065.js",
     "runtime~main.js.map": "/card-filter-app/static/js/runtime~main.6a35b065.js.map",
     "static/js/2.b7257ad6.chunk.js": "/card-filter-app/static/js/2.b7257ad6.chunk.js",
@@ -10,8 +10,8 @@
     "static/js/3.68d536b4.chunk.js": "/card-filter-app/static/js/3.68d536b4.chunk.js",
     "static/js/3.68d536b4.chunk.js.map": "/card-filter-app/static/js/3.68d536b4.chunk.js.map",
     "index.html": "/card-filter-app/index.html",
-    "precache-manifest.a6fcb1f856180d4a8c450cb5a47a7e2a.js": "/card-filter-app/precache-manifest.a6fcb1f856180d4a8c450cb5a47a7e2a.js",
+    "precache-manifest.6acccc8ac06721cc18fc70cf6c3ffa52.js": "/card-filter-app/precache-manifest.6acccc8ac06721cc18fc70cf6c3ffa52.js",
     "service-worker.js": "/card-filter-app/service-worker.js",
-    "static/css/main.e12650e2.chunk.css.map": "/card-filter-app/static/css/main.e12650e2.chunk.css.map"
+    "static/css/main.0e97c9fc.chunk.css.map": "/card-filter-app/static/css/main.0e97c9fc.chunk.css.map"
   }
 }
