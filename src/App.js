@@ -3,9 +3,11 @@ import Papa from 'papaparse';
 import './styles.css';
 
 // -----------------------------------------------------------------------------
-// OPTYMALIZACJA 1: Funkcja pomocnicza poza komponentem
-// Dzięki temu nie jest tworzona na nowo przy każdym renderze.
+// PLACEHOLDER: Zakodowany obrazek SVG (56x80px).
+// Jest ładowany natychmiastowo z pamięci, bez pobierania z internetu.
 // -----------------------------------------------------------------------------
+const PLACEHOLDER_IMG = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='80' viewBox='0 0 56 80'%3E%3Crect width='56' height='80' fill='%23e2e8f0'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='12' font-weight='bold' fill='%2364748b'%3ENo Img%3C/text%3E%3C/svg%3E";
+
 const buildCardImageUrl = (character, series, edition) => {
   const slugify = (text) =>
     String(text || '')
@@ -30,18 +32,14 @@ const CardFilterApp = () => {
   // STAN APLIKACJI
   // ---------------------------------------------------------------------------
   const [file, setFile] = useState(null);
-  const [data, setData] = useState([]); // Główne dane (surowe)
-  
-  // OPTYMALIZACJA 2: Zamiast trzymać kopię tablicy 'displayData',
-  // trzymamy tylko zbiór kodów, które zostały ukryte (skopiowane).
-  // To oszczędza mnóstwo pamięci RAM.
+  const [data, setData] = useState([]); 
   const [hiddenCodes, setHiddenCodes] = useState(new Set());
   
   const [loading, setLoading] = useState(false);
   const [prefix, setPrefix] = useState('');
   const [isDarkTheme, setIsDarkTheme] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(25); // Zmniejszono domyślne obciążenie
+  const [itemsPerPage, setItemsPerPage] = useState(25); 
   const [sortField, setSortField] = useState(null);
   const [sortDirection, setSortDirection] = useState('asc');
   const [csvUrl, setCsvUrl] = useState('');
@@ -72,25 +70,23 @@ const CardFilterApp = () => {
     excludeDyeName: false
   });
 
-  const [notFoundCodes, setNotFoundCodes] = useState([]); // To zostawiamy jako stan dla UI
+  const [notFoundCodes, setNotFoundCodes] = useState([]);
   const [showCodesModal, setShowCodesModal] = useState(false);
   const [codesDisplayFormat, setCodesDisplayFormat] = useState('50per');
   const [fullImage, setFullImage] = useState(null);
 
   // ---------------------------------------------------------------------------
-  // OPTYMALIZACJA 3: useMemo dla filtrowania
-  // React przeliczy to TYLKO gdy zmienią się 'data' lub 'filters'.
+  // LOGIKA FILTROWANIA
   // ---------------------------------------------------------------------------
   const filteredData = useMemo(() => {
     if (!data.length) return [];
     
     let results = data;
 
-    // A. Filtrowanie po kodach (priorytet)
+    // A. Filtr kodów (priorytet)
     if (filters.codes.trim()) {
       const searchCodes = filters.codes.toLowerCase().split(',').map(c => c.trim()).filter(c => c.length > 0);
       
-      // Optymalizacja wyszukiwania kodów (mapa zamiast wielokrotnego filter)
       const codeMap = new Map();
       data.forEach(card => {
         const key = card.code.toLowerCase();
@@ -99,26 +95,16 @@ const CardFilterApp = () => {
       });
 
       const foundResults = [];
-      const foundCodesList = [];
-      const notFoundList = [];
-
       searchCodes.forEach(sc => {
         if (codeMap.has(sc)) {
           foundResults.push(...codeMap.get(sc));
-          foundCodesList.push(sc);
-        } else {
-          notFoundList.push(sc);
         }
       });
-      
-      // Uwaga: Aktualizacja stanu wewnątrz renderowania (setNotFoundCodes) jest ryzykowna,
-      // ale w tym układzie zostawiamy to w useEffect poniżej, aby nie zapętlić.
       return foundResults;
     }
 
     // B. Standardowe filtry
     return results.filter(card => {
-        // Exclude / Blacklist (Szybkie odrzucanie)
         if (filters.excludeMorphed && card.morphed === "Yes") return false;
         if (filters.excludeTrimmed && card.trimmed === "Yes") return false;
         if (filters.excludeFrame && card.frame && card.frame.trim() !== '') return false;
@@ -128,7 +114,6 @@ const CardFilterApp = () => {
         if (filters.blacklistCharacter && filters.blacklistCharacter.split(',').some(c => card.character.toLowerCase().includes(c.trim().toLowerCase()))) return false;
         if (filters.blacklistTag && filters.blacklistTag.split(',').some(t => (card.tag || '').toLowerCase().includes(t.trim().toLowerCase()))) return false;
 
-        // Include Filters
         if (filters.series) {
             const includedSeries = filters.series.toLowerCase().split(',').map(s => s.trim());
             if (!includedSeries.some(s => card.series.toLowerCase().includes(s))) return false;
@@ -156,7 +141,7 @@ const CardFilterApp = () => {
     });
   }, [data, filters]);
 
-  // Efekt uboczny dla notFoundCodes (wyciągnięty z renderowania)
+  // Efekt uboczny dla notFoundCodes
   useEffect(() => {
     if (filters.codes.trim()) {
         const searchCodes = filters.codes.toLowerCase().split(',').map(c => c.trim()).filter(c => c.length > 0);
@@ -168,19 +153,11 @@ const CardFilterApp = () => {
     }
   }, [filters.codes, data]);
 
-
-  // ---------------------------------------------------------------------------
-  // OPTYMALIZACJA 4: Wyświetlane dane (ukrywanie skopiowanych)
-  // ---------------------------------------------------------------------------
   const displayData = useMemo(() => {
     if (hiddenCodes.size === 0) return filteredData;
     return filteredData.filter(card => !hiddenCodes.has(card.code));
   }, [filteredData, hiddenCodes]);
 
-
-  // ---------------------------------------------------------------------------
-  // OPTYMALIZACJA 5: Sortowanie
-  // ---------------------------------------------------------------------------
   const sortedDisplayData = useMemo(() => {
     if (!sortField) return displayData;
     
@@ -208,14 +185,13 @@ const CardFilterApp = () => {
   }, [sortedDisplayData, currentPage, itemsPerPage]);
 
   // ---------------------------------------------------------------------------
-  // HANDLERY (Obsługa zdarzeń)
+  // HANDLERY
   // ---------------------------------------------------------------------------
-
   const handleSort = useCallback((field) => {
     if (sortField === field) {
       setSortDirection(prev => {
          if (prev === 'asc') return 'desc';
-         setSortField(null); // Reset przy trzecim kliknięciu
+         setSortField(null);
          return 'asc';
       });
     } else {
@@ -234,7 +210,7 @@ const CardFilterApp = () => {
         skipEmptyLines: true,
         complete: (results) => {
           setData(results.data);
-          setHiddenCodes(new Set()); // Reset ukrytych
+          setHiddenCodes(new Set());
           setLoading(false);
         },
         error: (error) => { console.error(error); setLoading(false); }
@@ -276,7 +252,7 @@ const CardFilterApp = () => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
-    setCurrentPage(1); // Reset strony przy zmianie filtra
+    setCurrentPage(1);
   };
 
   const handleEditionChange = (edition) => {
@@ -296,21 +272,17 @@ const CardFilterApp = () => {
       blacklistSeries: '', blacklistCharacter: '', blacklistTag: '', excludeFrame: false, excludeMorphed: false, excludeTrimmed: false, excludeDyeName: false
     });
     setSortField(null);
-    setHiddenCodes(new Set()); // Odkryj wszystkie
+    setHiddenCodes(new Set());
     setCurrentPage(1);
   };
 
   const applyFilters = () => {
-     // Przycisk "Apply Filters" jest głównie wizualny, bo filtry działają w czasie rzeczywistym,
-     // ale może służyć do resetu paginacji lub ukrytych kart.
      setCurrentPage(1);
      setHiddenCodes(new Set());
   };
 
-  // Kopiowanie (Batch 50)
   const copyCardCodes = () => {
     if (displayData.length === 0) {
-        // Jeśli wszystko skopiowane, resetujemy widok
         if (hiddenCodes.size > 0) {
              setHiddenCodes(new Set());
              alert("Restored all hidden cards!");
@@ -320,13 +292,11 @@ const CardFilterApp = () => {
 
     const batchSize = 50;
     const cardsToCopy = displayData.slice(0, batchSize);
-    
     const codesStr = cardsToCopy.map(card => prefix.trim() ? `${prefix} ${card.code}` : card.code).join(', ');
     
     navigator.clipboard.writeText(codesStr);
     alert(`Copied ${cardsToCopy.length} codes`);
 
-    // Ukrywamy skopiowane
     setHiddenCodes(prev => {
         const next = new Set(prev);
         cardsToCopy.forEach(c => next.add(c.code));
@@ -334,7 +304,6 @@ const CardFilterApp = () => {
     });
   };
 
-  // Kopiowanie pojedyncze
   const copyCardCodesOneLine = () => {
     if (displayData.length === 0) {
          if (hiddenCodes.size > 0) {
@@ -346,7 +315,6 @@ const CardFilterApp = () => {
     
     const card = displayData[0];
     const codeStr = prefix.trim() ? `${prefix} ${card.code}` : card.code;
-    
     navigator.clipboard.writeText(codeStr);
     
     setHiddenCodes(prev => {
@@ -392,13 +360,11 @@ const CardFilterApp = () => {
     }
   };
 
-  // Pobranie unikalnych edycji do filtrów
   const uniqueEditions = useMemo(() => {
      const eds = new Set(data.map(c => c.edition));
      return Array.from(eds).sort((a,b) => parseInt(a) - parseInt(b));
   }, [data]);
 
-  // Theme effect
   useEffect(() => {
     document.body.className = isDarkTheme ? 'dark-theme' : '';
   }, [isDarkTheme]);
@@ -408,7 +374,6 @@ const CardFilterApp = () => {
   // ---------------------------------------------------------------------------
   return (
     <div className="container">
-      {/* Theme Toggle */}
       <div className="theme-switch-container">
         <span className="theme-icon">☀️</span>
         <label className="theme-switch">
@@ -418,7 +383,7 @@ const CardFilterApp = () => {
         <span className="theme-icon">🌙</span>
       </div>
       
-      <h1 className="header">Card Filter App (Optimized)</h1>
+      <h1 className="header">Card Filter App</h1>
       
       {/* 1. SEKCJA ŁADOWANIA PLIKU */}
       <div className="card">
@@ -508,7 +473,6 @@ const CardFilterApp = () => {
           </div>
 
           <div className="form-group">
-             <label className="form-label">Editions:</label>
              <div className="flex flex-wrap gap-2">
                 {uniqueEditions.map(ed => (
                    <button key={ed} onClick={() => !filters.codes && handleEditionChange(ed)} className={`chip ${filters.editions.includes(ed) ? 'chip-blue' : 'chip-gray'} ${filters.codes ? 'opacity-50' : ''}`} disabled={!!filters.codes}>{ed}</button>
@@ -556,7 +520,18 @@ const CardFilterApp = () => {
                    <input type="checkbox" id="excludeFrame" name="excludeFrame" checked={filters.excludeFrame} onChange={handleFilterChange} className="checkbox" />
                    <label htmlFor="excludeFrame" className="checkbox-label">Exclude Frame</label>
                 </div>
-                {/* Możesz dodać pozostałe exclude checkboxy analogicznie */}
+                <div className="checkbox-container">
+                   <input type="checkbox" id="excludeMorphed" name="excludeMorphed" checked={filters.excludeMorphed} onChange={handleFilterChange} className="checkbox" />
+                   <label htmlFor="excludeMorphed" className="checkbox-label">Exclude Morphed</label>
+                </div>
+                <div className="checkbox-container">
+                   <input type="checkbox" id="excludeTrimmed" name="excludeTrimmed" checked={filters.excludeTrimmed} onChange={handleFilterChange} className="checkbox" />
+                   <label htmlFor="excludeTrimmed" className="checkbox-label">Exclude Trimmed</label>
+                </div>
+                <div className="checkbox-container">
+                   <input type="checkbox" id="excludeDyeName" name="excludeDyeName" checked={filters.excludeDyeName} onChange={handleFilterChange} className="checkbox" />
+                   <label htmlFor="excludeDyeName" className="checkbox-label">Exclude Dye Name</label>
+                </div>
              </div>
            </div>
         </div>
@@ -598,7 +573,6 @@ const CardFilterApp = () => {
                <tbody>
                  {currentItems.map((card) => {
                    const { primary, fallback } = buildCardImageUrl(card.character, card.series, card.edition);
-                   // KLUCZOWY ELEMENT OPTYMALIZACJI: key={card.code} zamiast index
                    return (
                      <tr key={card.code}>
                        <td>
@@ -611,14 +585,16 @@ const CardFilterApp = () => {
                            height="80"
                            onError={(e) => {
                               if (!e.currentTarget.dataset.triedFallback) {
+                                 // Pierwszy błąd: Spróbuj fallback URL
                                  e.currentTarget.dataset.triedFallback = "true";
                                  e.currentTarget.src = fallback;
                               } else {
+                                 // Drugi błąd: Wstaw placeholder SVG
                                  e.currentTarget.onerror = null;
-                                 e.currentTarget.src = 'https://via.placeholder.com/56x80?text=No+Img';
+                                 e.currentTarget.src = PLACEHOLDER_IMG;
                               }
                            }}
-                           onClick={() => setFullImage(primary)}
+                           onClick={(e) => setFullImage(e.currentTarget.src)}
                          />
                        </td>
                        <td className="code-cell">{card.code}</td>
