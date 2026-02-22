@@ -2,7 +2,10 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Papa from 'papaparse';
 import './styles.css';
 
-// Funkcja pomocnicza wyniesiona poza komponent (nie tworzy się na nowo przy renderze)
+// -----------------------------------------------------------------------------
+// OPTYMALIZACJA 1: Funkcja pomocnicza poza komponentem
+// Dzięki temu nie jest tworzona na nowo przy każdym renderze.
+// -----------------------------------------------------------------------------
 const buildCardImageUrl = (character, series, edition) => {
   const slugify = (text) =>
     String(text || '')
@@ -23,26 +26,29 @@ const buildCardImageUrl = (character, series, edition) => {
 };
 
 const CardFilterApp = () => {
+  // ---------------------------------------------------------------------------
+  // STAN APLIKACJI
+  // ---------------------------------------------------------------------------
   const [file, setFile] = useState(null);
-  const [data, setData] = useState([]);
-  // Usunięto filteredData i displayData jako stan - będą obliczane przez useMemo
-  // aby uniknąć duplikacji danych w pamięci RAM (3 kopie tego samego = 3x RAM)
+  const [data, setData] = useState([]); // Główne dane (surowe)
+  
+  // OPTYMALIZACJA 2: Zamiast trzymać kopię tablicy 'displayData',
+  // trzymamy tylko zbiór kodów, które zostały ukryte (skopiowane).
+  // To oszczędza mnóstwo pamięci RAM.
+  const [hiddenCodes, setHiddenCodes] = useState(new Set());
   
   const [loading, setLoading] = useState(false);
-  const [copyBatch, setCopyBatch] = useState(0);
-  const [singleCopyIndex, setSingleCopyIndex] = useState(0);
-  const [copiedCodes, setCopiedCodes] = useState(new Set()); // Zamiast usuwać z tablicy, trzymamy ID skopiowanych
-  
   const [prefix, setPrefix] = useState('');
   const [isDarkTheme, setIsDarkTheme] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(25); // Zmniejszono domyślną ilość dla oszczędności RAM
+  const [itemsPerPage, setItemsPerPage] = useState(25); // Zmniejszono domyślne obciążenie
   const [sortField, setSortField] = useState(null);
   const [sortDirection, setSortDirection] = useState('asc');
   const [csvUrl, setCsvUrl] = useState('');
   const [inputMethod, setInputMethod] = useState('file');
   const [urlError, setUrlError] = useState('');
-  
+
+  // Stan filtrów
   const [filters, setFilters] = useState({
     codes: '',
     series: '',
@@ -65,72 +71,67 @@ const CardFilterApp = () => {
     excludeTrimmed: false,
     excludeDyeName: false
   });
-  
-  const [notFoundCodes, setNotFoundCodes] = useState([]);
+
+  const [notFoundCodes, setNotFoundCodes] = useState([]); // To zostawiamy jako stan dla UI
   const [showCodesModal, setShowCodesModal] = useState(false);
   const [codesDisplayFormat, setCodesDisplayFormat] = useState('50per');
   const [fullImage, setFullImage] = useState(null);
 
-  // --- LOGIKA FILTROWANIA (useMemo) ---
+  // ---------------------------------------------------------------------------
+  // OPTYMALIZACJA 3: useMemo dla filtrowania
+  // React przeliczy to TYLKO gdy zmienią się 'data' lub 'filters'.
+  // ---------------------------------------------------------------------------
   const filteredData = useMemo(() => {
     if (!data.length) return [];
     
     let results = data;
 
-    // 1. Filtr kodów (priorytet)
+    // A. Filtrowanie po kodach (priorytet)
     if (filters.codes.trim()) {
       const searchCodes = filters.codes.toLowerCase().split(',').map(c => c.trim()).filter(c => c.length > 0);
-      const found = [];
-      const notFound = [];
-      const codeResults = [];
       
-      // Optymalizacja wyszukiwania kodów
+      // Optymalizacja wyszukiwania kodów (mapa zamiast wielokrotnego filter)
       const codeMap = new Map();
       data.forEach(card => {
-        // Zakładamy, że kod jest unikalny, ale jeśli nie, zbieramy wszystkie
-        if(!codeMap.has(card.code.toLowerCase())) {
-            codeMap.set(card.code.toLowerCase(), []);
-        }
-        codeMap.get(card.code.toLowerCase()).push(card);
+        const key = card.code.toLowerCase();
+        if(!codeMap.has(key)) codeMap.set(key, []);
+        codeMap.get(key).push(card);
       });
 
+      const foundResults = [];
+      const foundCodesList = [];
+      const notFoundList = [];
+
       searchCodes.forEach(sc => {
-        const matches = codeMap.get(sc);
-        if (matches) {
-          codeResults.push(...matches);
-          found.push(sc);
+        if (codeMap.has(sc)) {
+          foundResults.push(...codeMap.get(sc));
+          foundCodesList.push(sc);
         } else {
-          notFound.push(sc);
+          notFoundList.push(sc);
         }
       });
       
-      // Efekt uboczny w renderze jest ryzykowny, ale tutaj aktualizujemy stan tylko jeśli się zmienił
-      // (W idealnym świecie notFoundCodes powinno być osobnym useMemo, ale zostawmy dla uproszczenia)
-      if (JSON.stringify(notFound) !== JSON.stringify(notFoundCodes)) {
-         // Uwaga: To może powodować pętlę renderowania, dlatego w useMemo unikamy setState.
-         // Lepiej obliczyć notFoundCodes osobno.
-      }
-      return codeResults;
+      // Uwaga: Aktualizacja stanu wewnątrz renderowania (setNotFoundCodes) jest ryzykowna,
+      // ale w tym układzie zostawiamy to w useEffect poniżej, aby nie zapętlić.
+      return foundResults;
     }
 
-    // 2. Standardowe filtry
+    // B. Standardowe filtry
     return results.filter(card => {
-        // Exclude Filters (Szybkie wyjścia)
+        // Exclude / Blacklist (Szybkie odrzucanie)
         if (filters.excludeMorphed && card.morphed === "Yes") return false;
         if (filters.excludeTrimmed && card.trimmed === "Yes") return false;
         if (filters.excludeFrame && card.frame && card.frame.trim() !== '') return false;
         if (filters.excludeDyeName && card["dye.name"] && card["dye.name"].trim() !== '') return false;
 
-        // Blacklists
-        if (filters.blacklistSeries && card.series.toLowerCase().includes(filters.blacklistSeries.toLowerCase())) return false; // uproszczone dla wydajności
-        if (filters.blacklistCharacter && card.character.toLowerCase().includes(filters.blacklistCharacter.toLowerCase())) return false;
-        if (filters.blacklistTag && (card.tag || '').toLowerCase().includes(filters.blacklistTag.toLowerCase())) return false;
+        if (filters.blacklistSeries && filters.blacklistSeries.split(',').some(s => card.series.toLowerCase().includes(s.trim().toLowerCase()))) return false;
+        if (filters.blacklistCharacter && filters.blacklistCharacter.split(',').some(c => card.character.toLowerCase().includes(c.trim().toLowerCase()))) return false;
+        if (filters.blacklistTag && filters.blacklistTag.split(',').some(t => (card.tag || '').toLowerCase().includes(t.trim().toLowerCase()))) return false;
 
         // Include Filters
         if (filters.series) {
             const includedSeries = filters.series.toLowerCase().split(',').map(s => s.trim());
-            const cardSeries = card.series.toLowerCase();
-            if (!includedSeries.some(s => cardSeries.includes(s))) return false;
+            if (!includedSeries.some(s => card.series.toLowerCase().includes(s))) return false;
         }
         
         if (filters.numberFrom && parseInt(card.number) < parseInt(filters.numberFrom)) return false;
@@ -153,16 +154,33 @@ const CardFilterApp = () => {
 
         return true;
     });
-  }, [data, filters]); // Przelicza się TYLKO gdy zmienią się dane lub filtry
+  }, [data, filters]);
 
-  // --- LOGIKA UKRYWANIA SKOPIOWANYCH ---
+  // Efekt uboczny dla notFoundCodes (wyciągnięty z renderowania)
+  useEffect(() => {
+    if (filters.codes.trim()) {
+        const searchCodes = filters.codes.toLowerCase().split(',').map(c => c.trim()).filter(c => c.length > 0);
+        const presentCodes = new Set(data.map(c => c.code.toLowerCase()));
+        const notFound = searchCodes.filter(sc => !presentCodes.has(sc));
+        setNotFoundCodes(notFound);
+    } else {
+        setNotFoundCodes([]);
+    }
+  }, [filters.codes, data]);
+
+
+  // ---------------------------------------------------------------------------
+  // OPTYMALIZACJA 4: Wyświetlane dane (ukrywanie skopiowanych)
+  // ---------------------------------------------------------------------------
   const displayData = useMemo(() => {
-    // Filtrujemy tylko widok, nie duplikujemy całej tablicy filteredData w stanie
-    if (copiedCodes.size === 0) return filteredData;
-    return filteredData.filter(card => !copiedCodes.has(card.code));
-  }, [filteredData, copiedCodes]);
+    if (hiddenCodes.size === 0) return filteredData;
+    return filteredData.filter(card => !hiddenCodes.has(card.code));
+  }, [filteredData, hiddenCodes]);
 
-  // --- SORTOWANIE (useMemo) ---
+
+  // ---------------------------------------------------------------------------
+  // OPTYMALIZACJA 5: Sortowanie
+  // ---------------------------------------------------------------------------
   const sortedDisplayData = useMemo(() => {
     if (!sortField) return displayData;
     
@@ -173,6 +191,7 @@ const CardFilterApp = () => {
         const bVal = parseInt(b[sortField]) || 0;
         return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
       }
+      
       const aVal = a[sortField] || '';
       const bVal = b[sortField] || '';
       return sortDirection === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
@@ -180,7 +199,7 @@ const CardFilterApp = () => {
     return sorted;
   }, [displayData, sortField, sortDirection]);
 
-  // --- PAGINACJA ---
+  // Paginacja
   const totalPages = Math.ceil(sortedDisplayData.length / itemsPerPage) || 1;
   
   const currentItems = useMemo(() => {
@@ -188,62 +207,23 @@ const CardFilterApp = () => {
     return sortedDisplayData.slice(startIndex, startIndex + itemsPerPage);
   }, [sortedDisplayData, currentPage, itemsPerPage]);
 
-  // --- HANDLERS (useCallback) ---
+  // ---------------------------------------------------------------------------
+  // HANDLERY (Obsługa zdarzeń)
+  // ---------------------------------------------------------------------------
+
   const handleSort = useCallback((field) => {
     if (sortField === field) {
-      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
-      if (sortDirection === 'desc') setSortField(null); // Reset przy trzecim kliknięciu
+      setSortDirection(prev => {
+         if (prev === 'asc') return 'desc';
+         setSortField(null); // Reset przy trzecim kliknięciu
+         return 'asc';
+      });
     } else {
       setSortField(field);
       setSortDirection('asc');
     }
-  }, [sortField, sortDirection]);
+  }, [sortField]);
 
-  // Reszta handlerów (kopiowanie, pliki) pozostaje podobna, ale używamy setCopiedCodes
-  
-  const copyCardCodes = () => {
-    const batchSize = 50;
-    // Logika resetu
-    const remainingCount = displayData.length; // displayData już nie zawiera skopiowanych
-    
-    if (remainingCount === 0) {
-      setCopiedCodes(new Set()); // Reset
-      setCopyBatch(0);
-      return;
-    }
-
-    const cardsToCopy = displayData.slice(0, batchSize);
-    
-    let codes = cardsToCopy.map(card => prefix.trim() ? `${prefix} ${card.code}` : card.code).join(', ');
-    
-    navigator.clipboard.writeText(codes);
-    alert(`Copied ${cardsToCopy.length} codes`);
-    
-    // Dodajemy do zestawu skopiowanych
-    setCopiedCodes(prev => {
-        const next = new Set(prev);
-        cardsToCopy.forEach(c => next.add(c.code));
-        return next;
-    });
-  };
-
-  const copyCardCodesOneLine = () => {
-     if (displayData.length === 0) {
-        setCopiedCodes(new Set());
-        return;
-     }
-     const card = displayData[0];
-     const code = prefix.trim() ? `${prefix} ${card.code}` : card.code;
-     navigator.clipboard.writeText(code);
-     
-     setCopiedCodes(prev => {
-         const next = new Set(prev);
-         next.add(card.code);
-         return next;
-     });
-  };
-
-  // Ładowanie pliku
   const handleFileUpload = async (event) => {
     const uploadedFile = event.target.files[0];
     setFile(uploadedFile);
@@ -251,10 +231,10 @@ const CardFilterApp = () => {
       setLoading(true);
       Papa.parse(uploadedFile, {
         header: true,
-        skipEmptyLines: true, // Ważne dla czystości danych
+        skipEmptyLines: true,
         complete: (results) => {
           setData(results.data);
-          setCopiedCodes(new Set());
+          setHiddenCodes(new Set()); // Reset ukrytych
           setLoading(false);
         },
         error: (error) => { console.error(error); setLoading(false); }
@@ -262,63 +242,173 @@ const CardFilterApp = () => {
     }
   };
 
-  // URL Load (skrócone dla czytelności)
   const handleUrlLoad = async () => {
-     if (!csvUrl) return;
-     setLoading(true);
-     try {
-         const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(csvUrl)}`;
-         const response = await fetch(proxyUrl);
-         const text = await response.text();
-         Papa.parse(text, {
-             header: true,
-             skipEmptyLines: true,
-             complete: (r) => { setData(r.data); setCopiedCodes(new Set()); setLoading(false); }
-         });
-     } catch(e) {
-         setUrlError(e.message);
-         setLoading(false);
-     }
+    if (!csvUrl.trim()) { setUrlError('Please enter a URL'); return; }
+    if (!csvUrl.toLowerCase().endsWith('.csv')) { setUrlError('URL must point to a .csv file'); return; }
+    
+    setLoading(true); setUrlError(''); setFile(null);
+    try {
+      const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(csvUrl)}`;
+      const response = await fetch(proxyUrl);
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const csvContent = await response.text();
+      
+      Papa.parse(csvContent, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+          if (!results.data || results.data.length === 0) { setUrlError('No data found'); setLoading(false); return; }
+          setData(results.data);
+          setHiddenCodes(new Set());
+          setLoading(false);
+        },
+        error: () => { setUrlError('Error parsing CSV'); setLoading(false); }
+      });
+    } catch (error) {
+      setUrlError(`Error: ${error.message}`);
+      setLoading(false);
+    }
   };
 
-  const applyFilters = () => {
-      // W tej architekturze applyFilters jest zbędne bo useMemo reaguje na zmianę stanu filters,
-      // ale dla UX (przycisk Apply) możemy np. wymusić odświeżenie lub zresetować paginację.
-      setCurrentPage(1);
-      setCopiedCodes(new Set());
+  const handleFilterChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFilters(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+    setCurrentPage(1); // Reset strony przy zmianie filtra
+  };
+
+  const handleEditionChange = (edition) => {
+    setFilters(prev => {
+        const newEditions = prev.editions.includes(edition) 
+            ? prev.editions.filter(e => e !== edition)
+            : [...prev.editions, edition];
+        return { ...prev, editions: newEditions };
+    });
+    setCurrentPage(1);
   };
 
   const resetFilters = () => {
-      setFilters({
-        codes: '', series: '', numberFrom: '', numberTo: '', wishlistsFrom: '', wishlistsTo: '',
-        editions: [], morphed: false, trimmed: false, frame: false, hasDyeName: false, tag: '', noneTag: false,
-        blacklistSeries: '', blacklistCharacter: '', blacklistTag: '', excludeFrame: false, excludeMorphed: false, excludeTrimmed: false, excludeDyeName: false
-      });
-      setCopiedCodes(new Set());
-      setSortField(null);
-      setCurrentPage(1);
+    setFilters({
+      codes: '', series: '', numberFrom: '', numberTo: '', wishlistsFrom: '', wishlistsTo: '',
+      editions: [], morphed: false, trimmed: false, frame: false, hasDyeName: false, tag: '', noneTag: false,
+      blacklistSeries: '', blacklistCharacter: '', blacklistTag: '', excludeFrame: false, excludeMorphed: false, excludeTrimmed: false, excludeDyeName: false
+    });
+    setSortField(null);
+    setHiddenCodes(new Set()); // Odkryj wszystkie
+    setCurrentPage(1);
   };
 
-  // Effects
-  useEffect(() => { document.title = "Karuta Cards Tool"; }, []);
-  useEffect(() => { 
-      if(isDarkTheme) document.body.classList.add('dark-theme');
-      else document.body.classList.remove('dark-theme');
+  const applyFilters = () => {
+     // Przycisk "Apply Filters" jest głównie wizualny, bo filtry działają w czasie rzeczywistym,
+     // ale może służyć do resetu paginacji lub ukrytych kart.
+     setCurrentPage(1);
+     setHiddenCodes(new Set());
+  };
+
+  // Kopiowanie (Batch 50)
+  const copyCardCodes = () => {
+    if (displayData.length === 0) {
+        // Jeśli wszystko skopiowane, resetujemy widok
+        if (hiddenCodes.size > 0) {
+             setHiddenCodes(new Set());
+             alert("Restored all hidden cards!");
+        }
+        return;
+    }
+
+    const batchSize = 50;
+    const cardsToCopy = displayData.slice(0, batchSize);
+    
+    const codesStr = cardsToCopy.map(card => prefix.trim() ? `${prefix} ${card.code}` : card.code).join(', ');
+    
+    navigator.clipboard.writeText(codesStr);
+    alert(`Copied ${cardsToCopy.length} codes`);
+
+    // Ukrywamy skopiowane
+    setHiddenCodes(prev => {
+        const next = new Set(prev);
+        cardsToCopy.forEach(c => next.add(c.code));
+        return next;
+    });
+  };
+
+  // Kopiowanie pojedyncze
+  const copyCardCodesOneLine = () => {
+    if (displayData.length === 0) {
+         if (hiddenCodes.size > 0) {
+             setHiddenCodes(new Set());
+             alert("Restored all hidden cards!");
+        }
+        return;
+    }
+    
+    const card = displayData[0];
+    const codeStr = prefix.trim() ? `${prefix} ${card.code}` : card.code;
+    
+    navigator.clipboard.writeText(codeStr);
+    
+    setHiddenCodes(prev => {
+        const next = new Set(prev);
+        next.add(card.code);
+        return next;
+    });
+  };
+
+  const downloadCardCodes = () => {
+    const maxCodesPerLine = 50;
+    let content = '';
+    for (let i = 0; i < filteredData.length; i += maxCodesPerLine) {
+      const batch = filteredData.slice(i, i + maxCodesPerLine);
+      const line = batch.map(card => card.code).join(', ');
+      content += prefix.trim() ? `${prefix} ${line}\n` : `${line}\n`;
+    }
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'card_codes.txt';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  };
+
+  const downloadCardCodesOneLine = () => {
+    const content = filteredData.map(card => prefix.trim() ? `${prefix} ${card.code}` : card.code).join('\n');
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'card_codes_one_per_line.txt';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  };
+
+  const generateCodesForModal = () => {
+    if (codesDisplayFormat === '50per') {
+         let content = '';
+         for (let i = 0; i < filteredData.length; i += 50) {
+             const batch = filteredData.slice(i, i + 50);
+             const line = batch.map(card => card.code).join(', ');
+             content += prefix.trim() ? `${prefix} ${line}\n` : `${line}\n`;
+         }
+         return content;
+    } else {
+         return filteredData.map(card => prefix.trim() ? `${prefix} ${card.code}` : card.code).join('\n');
+    }
+  };
+
+  // Pobranie unikalnych edycji do filtrów
+  const uniqueEditions = useMemo(() => {
+     const eds = new Set(data.map(c => c.edition));
+     return Array.from(eds).sort((a,b) => parseInt(a) - parseInt(b));
+  }, [data]);
+
+  // Theme effect
+  useEffect(() => {
+    document.body.className = isDarkTheme ? 'dark-theme' : '';
   }, [isDarkTheme]);
 
-  // Pomocnicza funkcja do obsługi błędów obrazków (zamiast inline)
-  const handleImageError = (e, fallbackSrc) => {
-     if (!e.currentTarget.dataset.triedFallback) {
-        e.currentTarget.dataset.triedFallback = "true";
-        e.currentTarget.src = fallbackSrc;
-     } else {
-        e.currentTarget.onerror = null;
-        e.currentTarget.src = 'https://via.placeholder.com/56x80?text=No+Img';
-     }
-  };
-
+  // ---------------------------------------------------------------------------
+  // RENDER (UI)
+  // ---------------------------------------------------------------------------
   return (
     <div className="container">
+      {/* Theme Toggle */}
       <div className="theme-switch-container">
         <span className="theme-icon">☀️</span>
         <label className="theme-switch">
@@ -327,124 +417,278 @@ const CardFilterApp = () => {
         </label>
         <span className="theme-icon">🌙</span>
       </div>
-
-      <h1 className="header">Card Filter Application (Optimized)</h1>
-
-      {/* --- SEKCJA LOAD --- */}
+      
+      <h1 className="header">Card Filter App (Optimized)</h1>
+      
+      {/* 1. SEKCJA ŁADOWANIA PLIKU */}
       <div className="card">
         <h2>Load CSV Data</h2>
         <div className="form-group">
-            <div className="flex gap-4">
-                <label><input type="radio" checked={inputMethod === 'file'} onChange={() => setInputMethod('file')} /> Upload File</label>
-                <label><input type="radio" checked={inputMethod === 'url'} onChange={() => setInputMethod('url')} /> Load URL</label>
+          <label className="form-label">Choose input method:</label>
+          <div className="flex gap-4">
+            <div className="checkbox-container">
+              <input type="radio" id="file-method" checked={inputMethod === 'file'} onChange={() => { setInputMethod('file'); setUrlError(''); }} className="checkbox" />
+              <label htmlFor="file-method" className="checkbox-label">Upload File</label>
             </div>
+            <div className="checkbox-container">
+              <input type="radio" id="url-method" checked={inputMethod === 'url'} onChange={() => { setInputMethod('url'); setFile(null); }} className="checkbox" />
+              <label htmlFor="url-method" className="checkbox-label">Load from URL</label>
+            </div>
+          </div>
         </div>
         
-        {inputMethod === 'file' ? (
-             <input type="file" accept=".csv,.txt" onChange={handleFileUpload} className="form-input" />
-        ) : (
-             <div className="flex gap-2">
-                 <input type="url" value={csvUrl} onChange={e=>setCsvUrl(e.target.value)} className="form-input" placeholder="URL..." />
-                 <button onClick={handleUrlLoad} className="btn btn-primary" disabled={loading}>Load</button>
-             </div>
-        )}
-        {loading && <p>Loading...</p>}
-        <div className="mt-4"><label>Prefix: </label><input value={prefix} onChange={e=>setPrefix(e.target.value)} className="form-input" /></div>
-      </div>
-
-      {/* --- SEKCJA FILTRÓW (Uproszczona dla czytelności kodu, zachowuje funkcjonalność) --- */}
-      <div className="card">
-          <h2>Filters</h2>
+        {inputMethod === 'file' && (
           <div className="form-group">
-              <label>Codes:</label>
-              <input name="codes" value={filters.codes} onChange={e => setFilters({...filters, codes: e.target.value})} className="form-input" placeholder="Search codes..." />
+            <label className="form-label">Select CSV or TXT file:</label>
+            <input type="file" accept=".csv, .txt" onChange={handleFileUpload} className="form-input" />
           </div>
-          <div className="flex gap-2 mt-4">
-               {/* Reszta inputów powinna działać analogicznie jak w oryginale, używając setFilters */}
-               <button onClick={applyFilters} className="btn btn-primary">Apply Filters / Reset Batch</button>
-               <button onClick={resetFilters} className="btn btn-secondary">Reset All</button>
-          </div>
-      </div>
-
-      {/* --- WYNIKI --- */}
-      <div className="card">
-         <div className="results-header">
-            <h2>Results ({displayData.length})</h2>
-            <div className="results-actions">
-                <button onClick={copyCardCodes} className="btn btn-success">Copy Batch (50)</button>
-                <button onClick={copyCardCodesOneLine} className="btn btn-success">Copy Single</button>
+        )}
+        
+        {inputMethod === 'url' && (
+          <div className="form-group">
+            <label className="form-label">CSV file URL:</label>
+            <div className="flex gap-2">
+              <input type="url" value={csvUrl} onChange={(e) => setCsvUrl(e.target.value)} className="form-input" placeholder="https://..." style={{flex: 1}} />
+              <button onClick={handleUrlLoad} disabled={loading} className="btn btn-primary">{loading ? 'Loading...' : 'Load CSV'}</button>
             </div>
-         </div>
+            {urlError && <div className="url-error"><p className="text-error">{urlError}</p></div>}
+          </div>
+        )}
 
-         {currentItems.length > 0 ? (
-             <div className="table-container">
-                 <table className="table">
-                     <thead>
-                         <tr>
-                             <th>Image</th>
-                             <th onClick={() => handleSort('code')} className="sortable-header">Code</th>
-                             <th onClick={() => handleSort('number')} className="sortable-header">Num</th>
-                             <th onClick={() => handleSort('edition')} className="sortable-header">Ed</th>
-                             <th onClick={() => handleSort('character')} className="sortable-header">Char</th>
-                             <th onClick={() => handleSort('series')} className="sortable-header">Series</th>
-                             <th>Tag</th>
-                         </tr>
-                     </thead>
-                     <tbody>
-                         {currentItems.map((card) => {
-                             // Obliczamy URL raz
-                             const imgUrls = buildCardImageUrl(card.character, card.series, card.edition);
-                             // KLUCZOWE: key musi być unikalny dla karty, nie index!
-                             return (
-                                 <tr key={card.code}> 
-                                     <td>
-                                         <img 
-                                             src={imgUrls.primary}
-                                             alt={card.code}
-                                             className="card-thumb zoomable"
-                                             loading="lazy"
-                                             width="56" 
-                                             height="80"
-                                             onError={(e) => handleImageError(e, imgUrls.fallback)}
-                                             onClick={() => setFullImage(imgUrls.primary)}
-                                         />
-                                     </td>
-                                     <td className="code-cell">{card.code}</td>
-                                     <td>{card.number}</td>
-                                     <td>{card.edition}</td>
-                                     <td>{card.character}</td>
-                                     <td>{card.series}</td>
-                                     <td>{card.tag}</td>
-                                 </tr>
-                             );
-                         })}
-                     </tbody>
-                 </table>
-             </div>
-         ) : <p className="no-results">No data</p>}
-
-         {/* Paginacja */}
-         <div className="pagination-container">
-             <button onClick={() => setCurrentPage(p => Math.max(1, p-1))} disabled={currentPage === 1} className="btn">&lt;</button>
-             <span>Page {currentPage} of {totalPages}</span>
-             <button onClick={() => setCurrentPage(p => Math.min(totalPages, p+1))} disabled={currentPage === totalPages} className="btn">&gt;</button>
-             <select value={itemsPerPage} onChange={e => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }} className="items-select">
-                 <option value="10">10</option>
-                 <option value="25">25</option>
-                 <option value="50">50 (Warning: High RAM)</option>
-                 <option value="100">100 (Critical RAM)</option>
-             </select>
-         </div>
+        {loading && <p>Loading data...</p>}
+        {!loading && data.length > 0 && <p className="text-success">Loaded {data.length} records.</p>}
+        
+        <div className="form-group mt-4">
+          <label className="form-label">Prefix for card codes:</label>
+          <input type="text" value={prefix} onChange={(e) => setPrefix(e.target.value)} className="form-input" placeholder="e.g. kt t1" />
+        </div>
       </div>
       
-      {/* Full Image Modal */}
-      {fullImage && (
-        <div className="image-modal-overlay" onClick={() => setFullImage(null)}>
-          <div className="image-modal-content">
-            <img src={fullImage} alt="Full" className="image-modal-full" />
-            <button className="image-modal-close" onClick={() => setFullImage(null)}>×</button>
+      {/* 2. SEKCJA FILTRÓW */}
+      <div className="card">
+        <h2>Filters</h2>
+        <div className="filter-section">
+          <h3 className="filter-section-title">Include Filters</h3>
+          
+          <div className="form-group">
+            <label className="form-label">Search by Card Codes:</label>
+            <input type="text" name="codes" value={filters.codes} onChange={handleFilterChange} className="form-input" placeholder="Enter codes separated by commas..." />
+            {notFoundCodes.length > 0 && (
+              <div className="not-found-codes"><p className="text-warning"><strong>Not found:</strong> {notFoundCodes.join(', ')}</p></div>
+            )}
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Series:</label>
+            <input type="text" name="series" value={filters.series} onChange={handleFilterChange} className="form-input" disabled={!!filters.codes} placeholder="Comma-separated series..." />
+          </div>
+          
+          <div className="form-group">
+            <label className="form-label">Number:</label>
+            <div className="flex gap-2">
+              <input type="number" name="numberFrom" value={filters.numberFrom} onChange={handleFilterChange} className="form-input" placeholder="From" disabled={!!filters.codes} />
+              <input type="number" name="numberTo" value={filters.numberTo} onChange={handleFilterChange} className="form-input" placeholder="To" disabled={!!filters.codes} />
+            </div>
+          </div>
+
+          <div className="form-group">
+             <label className="form-label">Wishlists:</label>
+             <div className="flex gap-2">
+                <input type="number" name="wishlistsFrom" value={filters.wishlistsFrom} onChange={handleFilterChange} className="form-input" placeholder="From" disabled={!!filters.codes} />
+                <input type="number" name="wishlistsTo" value={filters.wishlistsTo} onChange={handleFilterChange} className="form-input" placeholder="To" disabled={!!filters.codes} />
+             </div>
+          </div>
+
+          <div className="form-group">
+             <label className="form-label">Tag:</label>
+             <div className="flex gap-2">
+                <input type="text" name="tag" value={filters.tag} onChange={handleFilterChange} className="form-input" placeholder="Tag..." disabled={filters.noneTag || !!filters.codes} />
+                <button onClick={() => setFilters(prev => ({...prev, noneTag: !prev.noneTag}))} className={`btn ${filters.noneTag ? 'btn-primary' : 'btn-secondary'}`} disabled={!!filters.codes}>None Tag</button>
+             </div>
+          </div>
+
+          <div className="form-group">
+             <label className="form-label">Editions:</label>
+             <div className="flex flex-wrap gap-2">
+                {uniqueEditions.map(ed => (
+                   <button key={ed} onClick={() => !filters.codes && handleEditionChange(ed)} className={`chip ${filters.editions.includes(ed) ? 'chip-blue' : 'chip-gray'} ${filters.codes ? 'opacity-50' : ''}`} disabled={!!filters.codes}>{ed}</button>
+                ))}
+             </div>
+          </div>
+
+          <div className="form-group">
+             <div className="flex flex-wrap gap-2">
+                {['morphed', 'trimmed', 'frame', 'hasDyeName'].map(field => (
+                   <div key={field} className="checkbox-container">
+                      <input type="checkbox" id={field} name={field} checked={filters[field]} onChange={handleFilterChange} className="checkbox" disabled={!!filters.codes} />
+                      <label htmlFor={field} className="checkbox-label">{field}</label>
+                   </div>
+                ))}
+             </div>
+          </div>
+          
+          <div className="flex gap-2 mt-4">
+            <button onClick={applyFilters} className="btn btn-primary">Apply Filters / Reset Hidden</button>
+            <button onClick={resetFilters} className="btn btn-secondary">Reset Filters</button>
           </div>
         </div>
+
+        <div className="filter-section-divider"></div>
+
+        {/* Exclude Filters */}
+        <div className="filter-section">
+           <h3 className="filter-section-title">Exclude Filters (Blacklist)</h3>
+           <div className="form-group">
+              <label className="form-label">Exclude Series:</label>
+              <input type="text" name="blacklistSeries" value={filters.blacklistSeries} onChange={handleFilterChange} className="form-input" />
+           </div>
+           <div className="form-group">
+              <label className="form-label">Exclude Characters:</label>
+              <input type="text" name="blacklistCharacter" value={filters.blacklistCharacter} onChange={handleFilterChange} className="form-input" />
+           </div>
+           <div className="form-group">
+              <label className="form-label">Exclude Tags:</label>
+              <input type="text" name="blacklistTag" value={filters.blacklistTag} onChange={handleFilterChange} className="form-input" />
+           </div>
+           <div className="form-group">
+             <div className="flex flex-wrap gap-2">
+                <div className="checkbox-container">
+                   <input type="checkbox" id="excludeFrame" name="excludeFrame" checked={filters.excludeFrame} onChange={handleFilterChange} className="checkbox" />
+                   <label htmlFor="excludeFrame" className="checkbox-label">Exclude Frame</label>
+                </div>
+                {/* Możesz dodać pozostałe exclude checkboxy analogicznie */}
+             </div>
+           </div>
+        </div>
+      </div>
+      
+      {/* 3. WYNIKI */}
+      <div className="card">
+        <div className="results-header">
+           <h2>Results {data.length > 0 ? `(${displayData.length}/${filteredData.length})` : ""}</h2>
+           <div className="results-actions">
+              <button onClick={copyCardCodes} disabled={filteredData.length === 0} className={`btn ${filteredData.length === 0 ? 'btn-secondary' : 'btn-success'}`}>
+                 {displayData.length === 0 && filteredData.length > 0 ? "Restore All" : "Copy 50"}
+              </button>
+              <button onClick={copyCardCodesOneLine} disabled={filteredData.length === 0} className={`btn ${filteredData.length === 0 ? 'btn-secondary' : 'btn-success'}`}>
+                 Copy 1
+              </button>
+              <button onClick={downloadCardCodes} disabled={filteredData.length === 0} className="btn btn-purple">DL 50</button>
+              <button onClick={downloadCardCodesOneLine} disabled={filteredData.length === 0} className="btn btn-purple">DL 1</button>
+              <button onClick={() => setShowCodesModal(true)} disabled={filteredData.length === 0} className="btn btn-info">Show Codes</button>
+           </div>
+        </div>
+
+        {displayData.length > 0 ? (
+           <div className="table-container">
+             <table className="table">
+               <thead>
+                 <tr>
+                   <th>Image</th>
+                   <th onClick={() => handleSort('code')} className="sortable-header">Code {sortField === 'code' && (sortDirection === 'asc' ? '▲' : '▼')}</th>
+                   <th onClick={() => handleSort('number')} className="sortable-header">Num {sortField === 'number' && (sortDirection === 'asc' ? '▲' : '▼')}</th>
+                   <th onClick={() => handleSort('edition')} className="sortable-header">Ed {sortField === 'edition' && (sortDirection === 'asc' ? '▲' : '▼')}</th>
+                   <th onClick={() => handleSort('character')} className="sortable-header">Character</th>
+                   <th onClick={() => handleSort('series')} className="sortable-header">Series</th>
+                   <th>Quality</th>
+                   <th onClick={() => handleSort('wishlists')} className="sortable-header">WL</th>
+                   <th>Tag</th>
+                 </tr>
+               </thead>
+               <tbody>
+                 {currentItems.map((card) => {
+                   const { primary, fallback } = buildCardImageUrl(card.character, card.series, card.edition);
+                   // KLUCZOWY ELEMENT OPTYMALIZACJI: key={card.code} zamiast index
+                   return (
+                     <tr key={card.code}>
+                       <td>
+                         <img 
+                           src={primary}
+                           alt=""
+                           className="card-thumb zoomable"
+                           loading="lazy"
+                           width="56" 
+                           height="80"
+                           onError={(e) => {
+                              if (!e.currentTarget.dataset.triedFallback) {
+                                 e.currentTarget.dataset.triedFallback = "true";
+                                 e.currentTarget.src = fallback;
+                              } else {
+                                 e.currentTarget.onerror = null;
+                                 e.currentTarget.src = 'https://via.placeholder.com/56x80?text=No+Img';
+                              }
+                           }}
+                           onClick={() => setFullImage(primary)}
+                         />
+                       </td>
+                       <td className="code-cell">{card.code}</td>
+                       <td>{card.number}</td>
+                       <td>{card.edition}</td>
+                       <td>{card.character}</td>
+                       <td>{card.series}</td>
+                       <td>{card.quality}</td>
+                       <td>{card.wishlists}</td>
+                       <td>{card.tag}</td>
+                     </tr>
+                   );
+                 })}
+               </tbody>
+             </table>
+           </div>
+        ) : (
+           <p className="no-results">{file ? "No results (or all copied)." : "No data loaded."}</p>
+        )}
+
+        {/* Paginacja */}
+        {displayData.length > 0 && (
+          <div className="pagination-container">
+            <button onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="btn">&laquo;</button>
+            <button onClick={() => setCurrentPage(p => Math.max(1, p-1))} disabled={currentPage === 1} className="btn">&lsaquo;</button>
+            <div className="page-info">
+               <span>Page</span>
+               <input type="number" min="1" max={totalPages} value={currentPage} onChange={(e) => setCurrentPage(Number(e.target.value))} className="page-input form-input" />
+               <span>of {totalPages}</span>
+            </div>
+            <button onClick={() => setCurrentPage(p => Math.min(totalPages, p+1))} disabled={currentPage === totalPages} className="btn">&rsaquo;</button>
+            <button onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} className="btn">&raquo;</button>
+            
+            <div className="items-per-page">
+               <span>Show</span>
+               <select value={itemsPerPage} onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }} className="items-select form-input">
+                  <option value="10">10</option>
+                  <option value="25">25</option>
+                  <option value="50">50</option>
+                  <option value="100">100 (High RAM)</option>
+               </select>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Modals */}
+      {showCodesModal && (
+        <div className="modal-overlay" onClick={() => setShowCodesModal(false)}>
+           <div className="modal-content" onClick={e => e.stopPropagation()}>
+              <div className="modal-header"><h3>Codes</h3><button className="modal-close" onClick={() => setShowCodesModal(false)}>×</button></div>
+              <div className="modal-controls">
+                 <div className="modal-format-toggle">
+                    <button onClick={() => setCodesDisplayFormat('50per')} className={`btn ${codesDisplayFormat==='50per'?'btn-primary':'btn-secondary'}`}>50/line</button>
+                    <button onClick={() => setCodesDisplayFormat('1per')} className={`btn ${codesDisplayFormat==='1per'?'btn-primary':'btn-secondary'}`}>1/line</button>
+                 </div>
+                 <button onClick={() => { navigator.clipboard.writeText(generateCodesForModal()); alert('Copied!'); }} className="btn btn-success">Copy All</button>
+              </div>
+              <div className="modal-body"><textarea className="codes-textarea" value={generateCodesForModal()} readOnly rows={15} /></div>
+           </div>
+        </div>
+      )}
+
+      {fullImage && (
+         <div className="image-modal-overlay" onClick={() => setFullImage(null)}>
+            <div className="image-modal-content" onClick={e => e.stopPropagation()}>
+               <img src={fullImage} alt="Full" className="image-modal-full" />
+               <button className="image-modal-close" onClick={() => setFullImage(null)}>×</button>
+            </div>
+         </div>
       )}
     </div>
   );
